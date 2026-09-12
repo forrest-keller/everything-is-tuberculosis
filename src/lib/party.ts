@@ -102,18 +102,17 @@ export async function fetchPartySessionByCode(code: string): Promise<PartySessio
 }
 
 export async function joinPartySession(
-  sessionId: string,
+  code: string,
   playerId: string,
   name: string
 ): Promise<PartyPlayer> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("party_players")
-    .upsert({ id: playerId, session_id: sessionId, name }, { onConflict: "id" })
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
-  return mapPlayer(data);
+  const res = await fetch(`/api/party/${code}/join`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId, name }),
+  });
+  const data = await readJsonOrThrow(res);
+  return mapPlayer(data.player);
 }
 
 export async function fetchPartyPlayers(sessionId: string): Promise<PartyPlayer[]> {
@@ -144,13 +143,17 @@ export async function fetchPartyRoundResults(
   return (data ?? []).map(mapResult);
 }
 
-export async function setPlayerReady(playerId: string, isReady: boolean): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase
-    .from("party_players")
-    .update({ is_ready: isReady })
-    .eq("id", playerId);
-  if (error) throw new Error(error.message);
+export async function setPlayerReady(
+  code: string,
+  playerId: string,
+  isReady: boolean
+): Promise<void> {
+  const res = await fetch(`/api/party/${code}/ready`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId, isReady }),
+  });
+  await readJsonOrThrow(res);
 }
 
 export interface PartyAttempt {
@@ -203,28 +206,13 @@ export async function navigatePartyAttempt(
 
 /** Flips a session from "playing" to "round_results" once every current
  * player has submitted a result for the round. Safe to call redundantly. */
-export async function completeRoundIfDone(
-  sessionId: string,
-  roundNumber: number
-): Promise<void> {
-  const supabase = getSupabaseClient();
-  const [{ count: playerCount }, { count: resultCount }] = await Promise.all([
-    supabase.from("party_players").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
-    supabase
-      .from("party_round_results")
-      .select("id", { count: "exact", head: true })
-      .eq("session_id", sessionId)
-      .eq("round_number", roundNumber)
-      .eq("status", "finished"),
-  ]);
-
-  if (playerCount && resultCount !== null && resultCount >= playerCount) {
-    await supabase
-      .from("party_sessions")
-      .update({ status: "round_results" })
-      .eq("id", sessionId)
-      .eq("status", "playing");
-  }
+export async function completeRoundIfDone(code: string, roundNumber: number): Promise<void> {
+  const res = await fetch(`/api/party/${code}/complete-round`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ roundNumber }),
+  });
+  await readJsonOrThrow(res);
 }
 
 export async function advancePartyRound(code: string, playerId: string): Promise<PartySession> {

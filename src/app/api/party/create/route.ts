@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase";
+import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
 // Excludes visually-ambiguous characters (0/O, 1/I/L).
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -13,6 +14,8 @@ function generateCode(length = 5): string {
 }
 
 export async function POST(request: Request) {
+  if (isRateLimited(`party-create:${clientIp(request)}`, 10)) return rateLimitResponse();
+
   const body = await request.json().catch(() => null);
   const hostName = typeof body?.hostName === "string" ? body.hostName.trim() : "";
   const hostPlayerId = typeof body?.hostPlayerId === "string" ? body.hostPlayerId : "";
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing player id." }, { status: 400 });
   }
 
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceClient();
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateCode();

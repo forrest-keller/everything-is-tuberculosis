@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
+import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  if (isRateLimited(`party-advance:${clientIp(request)}`, 10)) return rateLimitResponse();
+
   const { code } = await params;
   const body = await request.json().catch(() => null);
   const playerId = typeof body?.playerId === "string" ? body.playerId : "";
 
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServiceClient();
   const { data: session, error: sessionError } = await supabase
     .from("party_sessions")
     .select("*")

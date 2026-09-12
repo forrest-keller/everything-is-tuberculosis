@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchArticle, fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
+import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
+  if (isRateLimited(`wiki:${clientIp(request)}`, 30)) return rateLimitResponse();
+
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get("mode");
 

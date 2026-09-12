@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
+import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (isRateLimited(`daily-navigate:${clientIp(request)}`, 60)) return rateLimitResponse();
+
   const { id } = await params;
   const body = await request.json().catch(() => null);
   const playerId = typeof body?.playerId === "string" ? body.playerId : "";

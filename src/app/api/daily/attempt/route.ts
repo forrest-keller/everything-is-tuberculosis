@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { getOrCreateTodayChallenge } from "@/lib/daily-server";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
+import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  if (isRateLimited(`daily-attempt:${clientIp(request)}`, 10)) return rateLimitResponse();
+
   const body = await request.json().catch(() => null);
   const playerId = typeof body?.playerId === "string" ? body.playerId : "";
   const playerName = typeof body?.playerName === "string" ? body.playerName : "";

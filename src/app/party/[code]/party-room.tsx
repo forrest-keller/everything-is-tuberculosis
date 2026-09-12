@@ -163,8 +163,8 @@ export function PartyRoom({ code }: PartyRoomProps) {
     if (players.length === 0 || results.length < players.length) return;
     if (completeAttemptedRef.current === session.roundNumber) return;
     completeAttemptedRef.current = session.roundNumber;
-    void completeRoundIfDone(session.id, session.roundNumber);
-  }, [session, players, results]);
+    void completeRoundIfDone(code, session.roundNumber);
+  }, [session, players, results, code]);
 
   const advanceAttemptedRef = useRef<number | null>(null);
   useEffect(() => {
@@ -183,7 +183,7 @@ export function PartyRoom({ code }: PartyRoomProps) {
     setJoinError(null);
     try {
       savePlayerName(name);
-      await joinPartySession(session.id, playerId, name);
+      await joinPartySession(code, playerId, name);
       await refreshPlayers(session.id);
     } catch (err) {
       setJoinError(err instanceof Error ? err.message : "Failed to join the session.");
@@ -207,11 +207,11 @@ export function PartyRoom({ code }: PartyRoomProps) {
   // checks whether the round can now advance for everyone.
   const handleRoundWin = useCallback(async () => {
     if (!session) return;
-    await completeRoundIfDone(session.id, session.roundNumber);
-  }, [session]);
+    await completeRoundIfDone(code, session.roundNumber);
+  }, [session, code]);
 
   async function handleReadyUp() {
-    await setPlayerReady(playerId, true);
+    await setPlayerReady(code, playerId, true);
   }
 
   if (notFound) {

@@ -101,14 +101,26 @@ create trigger party_sessions_set_updated_at
   for each row execute function public.set_updated_at();
 
 -- ============ Row Level Security ============
--- This is a casual, name-only game with no Supabase Auth, so most policies
--- are intentionally permissive (anyone can read/write game state). Don't put
--- anything sensitive in these tables.
+-- This is a casual, name-only game with no Supabase Auth, so read access is
+-- intentionally open (anyone can see game state). Don't put anything
+-- sensitive in these tables.
 --
--- daily_scores and party_round_results are the exception: those rows are
--- created and updated exclusively by server routes using the service-role
--- key (which bypasses RLS), so the browser gets read-only access to them —
--- otherwise a client could just insert a fabricated score directly.
+-- Writes are a different story. Besides daily_challenges' insert (so the
+-- first request of the day can create it), every mutation — creating a
+-- party session or player, changing ready state, advancing a round, scoring
+-- an attempt — happens exclusively through server routes using the
+-- service-role key (which bypasses RLS), never directly from the browser:
+--
+-- - daily_scores / party_round_results: the browser only ever needs to see
+--   *finished* rows (for leaderboards). An unfiltered read would leak every
+--   in-progress attempt's id + player_id, which is enough on its own to
+--   hijack another player's live attempt through the navigate routes (they
+--   only check that the request body's playerId matches the row's
+--   player_id).
+-- - party_sessions / party_players: no client insert/update policy at all,
+--   so the app-level checks in /api/party/[code]/advance ("only the host
+--   can start", "everyone must be ready") can't be bypassed with a direct
+--   PostgREST call using the public anon key.
 --
 -- redirect_cache is locked down further still: it's server-internal
 -- bookkeeping with no legitimate client read or write use, so it gets no
@@ -128,24 +140,22 @@ drop policy if exists "public insert daily_challenges" on public.daily_challenge
 create policy "public insert daily_challenges" on public.daily_challenges for insert with check (true);
 
 drop policy if exists "public read daily_scores" on public.daily_scores;
-create policy "public read daily_scores" on public.daily_scores for select using (true);
+create policy "public read daily_scores" on public.daily_scores
+  for select using (status = 'finished');
 
 drop policy if exists "public read party_sessions" on public.party_sessions;
 create policy "public read party_sessions" on public.party_sessions for select using (true);
 drop policy if exists "public insert party_sessions" on public.party_sessions;
-create policy "public insert party_sessions" on public.party_sessions for insert with check (true);
 drop policy if exists "public update party_sessions" on public.party_sessions;
-create policy "public update party_sessions" on public.party_sessions for update using (true) with check (true);
 
 drop policy if exists "public read party_players" on public.party_players;
 create policy "public read party_players" on public.party_players for select using (true);
 drop policy if exists "public insert party_players" on public.party_players;
-create policy "public insert party_players" on public.party_players for insert with check (true);
 drop policy if exists "public update party_players" on public.party_players;
-create policy "public update party_players" on public.party_players for update using (true) with check (true);
 
 drop policy if exists "public read party_round_results" on public.party_round_results;
-create policy "public read party_round_results" on public.party_round_results for select using (true);
+create policy "public read party_round_results" on public.party_round_results
+  for select using (status = 'finished');
 
 -- ============ Realtime ============
 -- Lets clients subscribe to live changes for a party session (lobby joins,

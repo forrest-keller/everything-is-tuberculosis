@@ -26,7 +26,7 @@ clicks (and as little time) as possible.
   redirects) matches `Tuberculosis`.
 - The daily challenge and party mode both persist state in Supabase
   (Postgres + Realtime); schema and RLS policies live in
-  [supabase/migrations/0001_daily_and_party.sql](supabase/migrations/0001_daily_and_party.sql).
+  [supabase/migrations/0001_initial_schema.sql](supabase/migrations/0001_initial_schema.sql).
 - Game modes share one core race hook,
   [`useWikiRace`](src/hooks/use-wiki-race.ts), which tracks the current
   article, click count, path, and elapsed time; each mode only differs in how
@@ -47,7 +47,7 @@ Next.js (App Router) · React · TypeScript · Tailwind CSS · Supabase
 
 2. Set up Supabase:
    - Create a project at [supabase.com](https://supabase.com).
-   - Run [supabase/migrations/0001_daily_and_party.sql](supabase/migrations/0001_daily_and_party.sql)
+   - Run [supabase/migrations/0001_initial_schema.sql](supabase/migrations/0001_initial_schema.sql)
      in the Supabase SQL Editor (or `supabase db push` if you've linked the
      project).
    - Create a `.env.local` file with your project's values:
