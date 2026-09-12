@@ -234,6 +234,18 @@
      white canvas — they need this in light mode too, not just dark. */
   background-color: #fff;
 }
+/*
+ * Sister-project links (e.g. "Media related to X at Wikimedia Commons")
+ * put a small icon inline before the link text inside a bare <li>. Without
+ * this, the `img` rule above combines with Tailwind's preflight
+ * (`img { display: block }`) and prose's vertical margins to shove the icon
+ * onto its own line, stranding the bullet and text apart from it.
+ */
+.wiki-content li img {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0.125rem 0.375rem 0.125rem 0;
+}
 .wiki-content .wiki-table-scroll {
   max-width: 100%;
   overflow-x: auto;
