@@ -10,11 +10,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   Ban,
+  CalendarDays,
   Link2,
   MousePointerClick,
   Shuffle,
   Stethoscope,
-  Timer,
+  Users,
 } from "lucide-react";
 
 const RULES = [
@@ -43,24 +44,64 @@ const RULES = [
   },
 ];
 
+const MODES = [
+  {
+    href: "/game",
+    icon: Shuffle,
+    title: "Solo",
+    description: "Jump straight in from a random article. No name, no waiting.",
+    cta: "Play Solo",
+  },
+  {
+    href: "/daily",
+    icon: CalendarDays,
+    title: "Daily Challenge",
+    description: "Everyone gets the same start article each day. Race for the leaderboard.",
+    cta: "Play Today's Challenge",
+  },
+  {
+    href: "/party",
+    icon: Users,
+    title: "Play with Friends",
+    description: "Create or join a session — everyone starts the same page each round.",
+    cta: "Play with Friends",
+  },
+];
+
 export default function LandingPage() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
           <Badge variant="secondary" className="gap-1.5">
             <MousePointerClick className="size-3.5" />
             A Wikipedia link-clicking game
           </Badge>
           <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
-            Everything is{" "}
-            <span className="text-primary">Tuberculosis</span>
+            Everything is <span className="text-primary">Tuberculosis</span>
           </h1>
           <p className="max-w-lg text-balance text-muted-foreground">
             No matter where Wikipedia drops you, every article is secretly just a
             few clicks away from Tuberculosis. Prove it — as fast as you can, in
             as few clicks as possible.
           </p>
+        </div>
+
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          {MODES.map(({ href, icon: Icon, title, description, cta }) => (
+            <Card key={href} className="flex flex-col">
+              <CardHeader>
+                <Icon className="mb-1 size-6 text-primary" />
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto">
+                <Button className="w-full" render={<Link href={href} />} nativeButton={false}>
+                  {cta}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <Card>
@@ -80,20 +121,9 @@ export default function LandingPage() {
           </CardContent>
         </Card>
 
-        <div className="mt-6 flex flex-col items-center gap-3">
-          <Button
-            size="lg"
-            className="gap-2 px-8"
-            nativeButton={false}
-            render={<Link href="/game" />}
-          >
-            <Timer className="size-4" />
-            Start Game
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            We track your clicks and your time — good luck.
-          </p>
-        </div>
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          We track your clicks and your time — good luck.
+        </p>
       </div>
     </div>
   );
