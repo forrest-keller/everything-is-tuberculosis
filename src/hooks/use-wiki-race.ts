@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useReducer } from "react";
+import { useCallback, useReducer, useRef } from "react";
 import { useStopwatch } from "@/hooks/use-stopwatch";
 import { fetchArticleByTitle, type WikiArticleResponse } from "@/lib/wiki-client";
 
@@ -75,14 +75,22 @@ function reducer(state: RaceState, action: Action): RaceState {
 export function useWikiRace() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const stopwatch = useStopwatch();
+  const loadRequestId = useRef(0);
 
+  // Guards against a load being superseded by a newer one before it resolves
+  // (e.g. React Strict Mode double-invoking the mount effect in dev, which
+  // would otherwise fire two fetches and flash the first article before the
+  // second replaces it).
   const runLoad = useCallback(
     async (loadStart: () => Promise<WikiArticleResponse>) => {
+      const requestId = ++loadRequestId.current;
       try {
         const article = await loadStart();
+        if (loadRequestId.current !== requestId) return;
         dispatch({ type: "LOAD_SUCCESS", title: article.title, html: article.html });
         stopwatch.start();
       } catch (err) {
+        if (loadRequestId.current !== requestId) return;
         dispatch({
           type: "LOAD_ERROR",
           message: err instanceof Error ? err.message : "Failed to load the starting article.",

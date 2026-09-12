@@ -195,6 +195,20 @@
 .wiki-content .infobox table {
   width: 100%;
 }
+/*
+ * Medical/biographical/geographic infoboxes are often much taller than the
+ * lead paragraph. Without this, the article's first heading (and any short
+ * section after it) renders squeezed into the narrow leftover space beside
+ * the still-floating infobox instead of starting on its own full-width line.
+ */
+.wiki-content h1,
+.wiki-content h2,
+.wiki-content h3,
+.wiki-content h4,
+.wiki-content h5,
+.wiki-content h6 {
+  clear: both;
+}
 .wiki-content img {
   max-width: 100%;
   height: auto;
