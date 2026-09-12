@@ -219,13 +219,18 @@ export async function fetchRandomTitle(): Promise<string> {
   return data.title;
 }
 
-/** Picks a random article, retrying if it happens to already be the target. */
-export async function fetchRandomStartTitle(): Promise<string> {
+/**
+ * Picks a random article and fetches it, retrying if it turns out to be the
+ * target. Checked against the *canonical* (redirect-resolved) article rather
+ * than the raw random-pick title, since a title like "Consumption (disease)"
+ * can redirect straight to Tuberculosis without ever matching a literal
+ * string check — that would otherwise start a game already "won".
+ */
+export async function fetchRandomStartArticle(): Promise<WikiArticle> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const title = await fetchRandomTitle();
-    if (title.trim().toLowerCase() !== TARGET_TITLE.toLowerCase()) {
-      return title;
-    }
+    const article = await fetchArticle(title);
+    if (!article.isTarget) return article;
   }
   throw new WikipediaError("Could not find a suitable random starting article");
 }

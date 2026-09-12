@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { NameEntryForm } from "@/components/name-entry-form";
 import { GameHeader } from "@/components/game-header";
 import { RaceArticleCard } from "@/components/race-article-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useWikiRace } from "@/hooks/use-wiki-race";
 import { fetchArticleByTitle } from "@/lib/wiki-client";
 import {
@@ -22,6 +23,19 @@ import {
 } from "@/lib/daily";
 import { getOrCreatePlayerId, getSavedPlayerName, savePlayerName } from "@/lib/player-identity";
 import { AlertTriangle, CalendarDays, PartyPopper } from "lucide-react";
+
+/** Shared shell for every pre-/post-game state on this page (not the active
+ * race view, which has its own GameHeader). */
+function PageShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function DailyPage() {
   const race = useWikiRace();
@@ -101,7 +115,7 @@ export default function DailyPage() {
 
   if (challengeError) {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <PageShell>
         <Alert variant="destructive">
           <AlertTriangle />
           <AlertTitle>Couldn&apos;t load today&apos;s challenge</AlertTitle>
@@ -112,24 +126,24 @@ export default function DailyPage() {
             </Button>
           </AlertDescription>
         </Alert>
-      </div>
+      </PageShell>
     );
   }
 
   if (!challenge) {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <PageShell>
         <div className="space-y-3">
           <Skeleton className="h-6 w-1/2" />
           <Skeleton className="h-24 w-full" />
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   if (!started) {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <PageShell>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <Badge variant="secondary" className="gap-1.5">
             <CalendarDays className="size-3.5" />
@@ -179,14 +193,14 @@ export default function DailyPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
   if (race.status === "won") {
     const myRank = leaderboard?.findIndex((s) => s.playerId === playerId) ?? -1;
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <PageShell>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <PartyPopper className="size-8 text-primary" />
           <h1 className="font-heading text-2xl font-semibold">Nice work, {playerName}!</h1>
@@ -229,7 +243,7 @@ export default function DailyPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 

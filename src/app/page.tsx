@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Ban,
   CalendarDays,
@@ -70,7 +71,10 @@ const MODES = [
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+    <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-16">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-3xl">
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
           <Badge variant="secondary" className="gap-1.5">

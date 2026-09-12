@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
-import { fetchRandomStartTitle, WikipediaError } from "@/lib/wikipedia";
+import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 
 export async function POST(
   request: Request,
@@ -45,7 +45,7 @@ export async function POST(
 
   let startTitle: string;
   try {
-    startTitle = await fetchRandomStartTitle();
+    startTitle = (await fetchRandomStartArticle()).title;
   } catch (error) {
     console.error("[/api/party/[code]/advance] failed:", error);
     const message =

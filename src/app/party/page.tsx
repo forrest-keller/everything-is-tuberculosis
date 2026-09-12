@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NameEntryForm } from "@/components/name-entry-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { createPartySession, fetchPartySessionByCode } from "@/lib/party";
 import { getOrCreatePlayerId, getSavedPlayerName, savePlayerName } from "@/lib/player-identity";
 import { AlertTriangle, Loader2, Users } from "lucide-react";
@@ -56,7 +57,10 @@ export default function PartyLandingPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+    <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="mb-6 flex flex-col items-center gap-2 text-center">
         <Users className="size-8 text-primary" />
         <h1 className="font-heading text-2xl font-semibold">Play with Friends</h1>

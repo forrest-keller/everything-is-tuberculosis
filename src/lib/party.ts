@@ -207,15 +207,48 @@ export async function advancePartyRound(code: string, playerId: string): Promise
   return mapSession(data);
 }
 
+/**
+ * A single row change from a postgres_changes event, already mapped to our
+ * camelCase shape. `row` is the new row for INSERT/UPDATE; for DELETE only
+ * the id is reliably available (Postgres only sends the primary key for
+ * deletes unless REPLICA IDENTITY FULL is set), so `row` is null and callers
+ * should filter the deleted id out of their local list instead.
+ */
+export interface RealtimeRowChange<T> {
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  id: string;
+  row: T | null;
+}
+
+/** Applies one row change to a locally-held list without refetching. */
+export function applyRealtimeChange<T extends { id: string }>(
+  list: T[],
+  change: RealtimeRowChange<T>
+): T[] {
+  if (change.eventType === "DELETE") {
+    return list.filter((item) => item.id !== change.id);
+  }
+  if (!change.row) return list;
+  const exists = list.some((item) => item.id === change.row!.id);
+  return exists
+    ? list.map((item) => (item.id === change.row!.id ? change.row! : item))
+    : [...list, change.row];
+}
+
 export function subscribeToPartySession(
   sessionId: string,
   handlers: {
     onSessionChange?: (session: PartySession) => void;
-    onPlayersChange?: () => void;
-    onResultsChange?: () => void;
+    onPlayerChange?: (change: RealtimeRowChange<PartyPlayer>) => void;
+    onResultChange?: (change: RealtimeRowChange<PartyRoundResult>) => void;
+    /** Fired when the socket resubscribes after a drop, so the caller can
+     * do a one-time refetch to patch over whatever events were missed. */
+    onResync?: () => void;
   }
 ): RealtimeChannel {
   const supabase = getSupabaseClient();
+  let hasSubscribedBefore = false;
+
   return supabase
     .channel(`party-session-${sessionId}`)
     .on(
@@ -228,7 +261,18 @@ export function subscribeToPartySession(
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "party_players", filter: `session_id=eq.${sessionId}` },
-      () => handlers.onPlayersChange?.()
+      (payload) => {
+        const eventType = payload.eventType as RealtimeRowChange<PartyPlayer>["eventType"];
+        const oldRow = payload.old as Record<string, unknown>;
+        const newRow = payload.new as Record<string, unknown>;
+        const id = (eventType === "DELETE" ? oldRow.id : newRow.id) as string | undefined;
+        if (!id) return;
+        handlers.onPlayerChange?.({
+          eventType,
+          id,
+          row: eventType === "DELETE" ? null : mapPlayer(newRow),
+        });
+      }
     )
     .on(
       "postgres_changes",
@@ -238,7 +282,23 @@ export function subscribeToPartySession(
         table: "party_round_results",
         filter: `session_id=eq.${sessionId}`,
       },
-      () => handlers.onResultsChange?.()
+      (payload) => {
+        const eventType = payload.eventType as RealtimeRowChange<PartyRoundResult>["eventType"];
+        const oldRow = payload.old as Record<string, unknown>;
+        const newRow = payload.new as Record<string, unknown>;
+        const id = (eventType === "DELETE" ? oldRow.id : newRow.id) as string | undefined;
+        if (!id) return;
+        handlers.onResultChange?.({
+          eventType,
+          id,
+          row: eventType === "DELETE" ? null : mapResult(newRow),
+        });
+      }
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        if (hasSubscribedBefore) handlers.onResync?.();
+        hasSubscribedBefore = true;
+      }
+    });
 }

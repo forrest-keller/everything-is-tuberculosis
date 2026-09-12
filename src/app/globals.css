@@ -196,6 +196,10 @@
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-sm);
+  /* Fixed white, not a theme token: lots of Wikipedia images are
+     transparent PNGs (maps, diagrams, coats of arms) drawn assuming a
+     white canvas — they need this in light mode too, not just dark. */
+  background-color: #fff;
 }
 .wiki-content table.wikitable {
   border-collapse: collapse;

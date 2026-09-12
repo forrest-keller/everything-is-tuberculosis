@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchArticle, fetchRandomStartTitle, WikipediaError } from "@/lib/wikipedia";
+import { fetchArticle, fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -7,8 +7,7 @@ export async function GET(request: NextRequest) {
 
   try {
     if (mode === "random") {
-      const title = await fetchRandomStartTitle();
-      const article = await fetchArticle(title);
+      const article = await fetchRandomStartArticle();
       return NextResponse.json(article);
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { NameEntryForm } from "@/components/name-entry-form";
 import { GameHeader } from "@/components/game-header";
 import { RaceArticleCard } from "@/components/race-article-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useWikiRace } from "@/hooks/use-wiki-race";
 import { fetchArticleByTitle } from "@/lib/wiki-client";
 import {
@@ -19,6 +20,7 @@ import {
   type PartyRoundResult,
   type PartySession,
   advancePartyRound,
+  applyRealtimeChange,
   completeRoundIfDone,
   fetchPartyPlayers,
   fetchPartyRoundResults,
@@ -33,6 +35,19 @@ import { AlertTriangle, Check, Copy, Crown, Loader2, Users } from "lucide-react"
 
 interface PartyRoomProps {
   code: string;
+}
+
+/** Shared shell for every non-active-race state on this page (lobby, join,
+ * results, errors) — the active race view gets the toggle via GameHeader. */
+function PageShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      {children}
+    </div>
+  );
 }
 
 export function PartyRoom({ code }: PartyRoomProps) {
@@ -96,13 +111,36 @@ export function PartyRoom({ code }: PartyRoomProps) {
     const sessionId = session.id;
     const channel = subscribeToPartySession(sessionId, {
       onSessionChange: (updated) => {
+        const roundChanged = updated.roundNumber !== roundNumberRef.current;
         setSession(updated);
         roundNumberRef.current = updated.roundNumber;
-        setResults([]);
-        void refreshResults(sessionId, updated.roundNumber);
+        // Only reset when the round actually advances — this also fires for
+        // e.g. the playing -> round_results status flip, which must keep
+        // the results that were just collected for the round.
+        if (roundChanged) setResults([]);
       },
-      onPlayersChange: () => void refreshPlayers(sessionId),
-      onResultsChange: () => void refreshResults(sessionId, roundNumberRef.current),
+      // Patched in from the realtime payload directly (no refetch) so a
+      // session's read cost stays O(1) per event instead of O(players).
+      onPlayerChange: (change) => {
+        setPlayers((prev) =>
+          applyRealtimeChange(prev, change).sort((a, b) => a.joinedAt.localeCompare(b.joinedAt))
+        );
+      },
+      onResultChange: (change) => {
+        // Ignore stray events for a round we've already moved past.
+        if (change.row && change.row.roundNumber !== roundNumberRef.current) return;
+        setResults((prev) =>
+          applyRealtimeChange(prev, change).sort(
+            (a, b) => a.clicks - b.clicks || a.durationMs - b.durationMs
+          )
+        );
+      },
+      // The socket dropped and came back — patch over whatever events were
+      // missed in the gap with a one-off refetch, then resume incrementally.
+      onResync: () => {
+        void refreshPlayers(sessionId);
+        void refreshResults(sessionId, roundNumberRef.current);
+      },
     });
     return () => {
       channel.unsubscribe();
@@ -183,38 +221,42 @@ export function PartyRoom({ code }: PartyRoomProps) {
 
   if (notFound) {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16 text-center">
-        <p className="mb-4 text-muted-foreground">No session found for code &ldquo;{code}&rdquo;.</p>
-        <Button render={<Link href="/party" />} nativeButton={false}>
-          Back to Play with Friends
-        </Button>
-      </div>
+      <PageShell>
+        <div className="text-center">
+          <p className="mb-4 text-muted-foreground">
+            No session found for code &ldquo;{code}&rdquo;.
+          </p>
+          <Button render={<Link href="/party" />} nativeButton={false}>
+            Back to Play with Friends
+          </Button>
+        </div>
+      </PageShell>
     );
   }
 
   if (loadError) {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <PageShell>
         <Alert variant="destructive">
           <AlertTriangle />
           <AlertTitle>Couldn&apos;t load this session</AlertTitle>
           <AlertDescription>{loadError}</AlertDescription>
         </Alert>
-      </div>
+      </PageShell>
     );
   }
 
   if (!session) {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <PageShell>
         <Skeleton className="h-24 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!myPlayer) {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <PageShell>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <Badge variant="secondary" className="gap-1.5 font-mono tracking-widest">
             {session.code}
@@ -238,7 +280,7 @@ export function PartyRoom({ code }: PartyRoomProps) {
             />
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
@@ -256,7 +298,7 @@ export function PartyRoom({ code }: PartyRoomProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
+    <PageShell>
       <PartyCodeBanner code={session.code} />
 
       {session.status === "lobby" && (
@@ -337,7 +379,7 @@ export function PartyRoom({ code }: PartyRoomProps) {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -410,16 +452,19 @@ function PartyRound({ startTitle, roundNumber, resultsCount, playersCount, onWin
 
   if (race.status === "won") {
     return (
-      <div className="mx-auto w-full max-w-lg flex-1 px-4 py-16 text-center">
-        <Check className="mx-auto mb-3 size-8 text-primary" />
-        <h1 className="mb-1 font-heading text-2xl font-semibold">You made it!</h1>
-        <p className="mb-4 text-sm text-muted-foreground">
-          {race.clicks} {race.clicks === 1 ? "click" : "clicks"} · {(race.elapsedMs / 1000).toFixed(1)}s
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Waiting for the rest of the group ({resultsCount}/{playersCount} finished)…
-        </p>
-      </div>
+      <PageShell>
+        <div className="text-center">
+          <Check className="mx-auto mb-3 size-8 text-primary" />
+          <h1 className="mb-1 font-heading text-2xl font-semibold">You made it!</h1>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {race.clicks} {race.clicks === 1 ? "click" : "clicks"} ·{" "}
+            {(race.elapsedMs / 1000).toFixed(1)}s
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Waiting for the rest of the group ({resultsCount}/{playersCount} finished)…
+          </p>
+        </div>
+      </PageShell>
     );
   }
 

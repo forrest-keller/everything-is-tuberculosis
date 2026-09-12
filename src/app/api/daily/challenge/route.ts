@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
-import { fetchRandomStartTitle, WikipediaError } from "@/lib/wikipedia";
+import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -22,10 +22,10 @@ export async function GET() {
   if (existing) return NextResponse.json(existing);
 
   try {
-    const startTitle = await fetchRandomStartTitle();
+    const article = await fetchRandomStartArticle();
     const { data: inserted, error: insertError } = await supabase
       .from("daily_challenges")
-      .insert({ challenge_date: challengeDate, start_title: startTitle })
+      .insert({ challenge_date: challengeDate, start_title: article.title })
       .select()
       .single();
 

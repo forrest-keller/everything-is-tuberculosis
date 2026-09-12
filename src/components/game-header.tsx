@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { formatDuration } from "@/lib/format";
 import { Home, MousePointerClick, RotateCcw, Target, Timer } from "lucide-react";
 
@@ -62,6 +63,7 @@ export function GameHeader({
           >
             <Home className="size-4" />
           </Button>
+          <ThemeToggle />
         </div>
       </div>
     </header>
