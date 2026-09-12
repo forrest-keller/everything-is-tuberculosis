@@ -47,7 +47,7 @@ const RULES = [
 
 const MODES = [
   {
-    href: "/game",
+    href: "/solo",
     icon: Shuffle,
     title: "Solo",
     description: "Jump straight in from a random article. No name, no waiting.",

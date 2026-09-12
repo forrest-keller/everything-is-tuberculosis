@@ -6,7 +6,7 @@ clicks (and as little time) as possible.
 
 ## Modes
 
-- **Solo** (`/game`) — jump straight into a random article, no name required.
+- **Solo** (`/solo`) — jump straight into a random article, no name required.
 - **Daily Challenge** (`/daily`) — everyone gets the same start article each
   UTC day and competes on a shared leaderboard (fewest clicks wins, time
   breaks ties).
