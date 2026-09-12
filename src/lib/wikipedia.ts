@@ -4,6 +4,21 @@ import sanitizeHtml from "sanitize-html";
 const WIKI_ORIGIN = "https://en.wikipedia.org";
 const TARGET_TITLE = "Tuberculosis";
 
+// Counts hits to the free public Wikipedia API (fetchJson's only caller
+// base — Wikimedia Enterprise calls go through fetchWithRetry directly, not
+// fetchJson). Per-process only, like wmeTokenState below; it resets on
+// restart/cold start. See the public-API-dependency risk in
+// docs/wikimedia-enterprise-scaling-plan.md.
+let publicApiHitCount = 0;
+
+// Wikimedia Enterprise API: https://enterprise.wikimedia.com/docs/
+// Used for article content. It has no random-article or redirect-lookup
+// endpoint, so those two operations still go through the free public APIs
+// above; only per-title content fetches move to Enterprise.
+const WME_AUTH_ORIGIN = "https://auth.enterprise.wikimedia.com";
+const WME_API_ORIGIN = "https://api.enterprise.wikimedia.com";
+const WME_PROJECT = "enwiki";
+
 /**
  * Wikipedia namespace prefixes (lowercased). A link whose title starts with
  * one of these followed by ":" is not a main-namespace article, so it must
@@ -211,22 +226,48 @@ function processArticleHtml(rawHtml: string): string {
   });
 }
 
-const USER_AGENT = "EverythingIsTuberculosisGame/1.0 (Next.js hobby project)";
+// Per https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy:
+// identify the client, include the word "bot", and give real contact info —
+// a generic/anonymous-looking UA can be deprioritized or blocked without notice.
+const USER_AGENT =
+  "EverythingIsTuberculosisBot/1.0 " +
+  "(https://github.com/forrest-keller/everything-is-tuberculosis; forrestblackburnkeller@gmail.com) " +
+  "Next.js/16.3.5";
 
-async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
+const MAX_RETRY_AFTER_MS = 10_000;
+
+function retryAfterMs(res: Response): number | null {
+  const header = res.headers.get("Retry-After");
+  if (!header) return null;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds)) return Math.min(seconds * 1000, MAX_RETRY_AFTER_MS);
+  const dateMs = Date.parse(header);
+  if (Number.isNaN(dateMs)) return null;
+  return Math.min(Math.max(dateMs - Date.now(), 0), MAX_RETRY_AFTER_MS);
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit = {},
+  retries = 2
+): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, {
       redirect: "follow",
-      headers: { "User-Agent": USER_AGENT },
+      ...init,
+      headers: { "User-Agent": USER_AGENT, ...init.headers },
     });
     const shouldRetry = (res.status === 429 || res.status >= 500) && attempt < retries;
     if (!shouldRetry) return res;
-    await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    const delay = (res.status === 429 && retryAfterMs(res)) || 400 * (attempt + 1);
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetchWithRetry(url);
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  publicApiHitCount++;
+  console.log(`[wikipedia] public API hit #${publicApiHitCount}: ${url}`);
+  const res = await fetchWithRetry(url, init);
   if (!res.ok) {
     throw new WikipediaError(`Wikipedia API request failed (${res.status})`);
   }
@@ -241,6 +282,136 @@ export async function fetchRandomTitle(): Promise<string> {
     throw new WikipediaError("Wikipedia did not return a random article title");
   }
   return data.title;
+}
+
+/**
+ * A title clicked in-article may be a redirect (e.g. "Consumption
+ * (disease)" -> "Tuberculosis"). Wikimedia Enterprise looks articles up by
+ * their own name and doesn't resolve redirects, so this falls back to the
+ * free MediaWiki API to find the canonical title before retrying it there.
+ */
+async function resolveRedirectTitle(title: string): Promise<string | null> {
+  const url = `${WIKI_ORIGIN}/w/api.php?action=query&redirects=1&format=json&formatversion=2&titles=${encodeURIComponent(
+    title
+  )}`;
+  const data = await fetchJson<{
+    query: { pages: { title: string; missing?: boolean }[] };
+  }>(url);
+  const page = data.query.pages[0];
+  if (!page || page.missing) return null;
+  return page.title;
+}
+
+interface WmeTokenState {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
+let wmeTokenState: WmeTokenState | null = null;
+let wmeLoginPromise: Promise<WmeTokenState> | null = null;
+
+function wmeCredentials(): { username: string; password: string } {
+  const username = process.env.WIKIMEDIA_ENTERPRISE_USERNAME;
+  const password = process.env.WIKIMEDIA_ENTERPRISE_PASSWORD;
+  if (!username || !password) {
+    throw new WikipediaError(
+      "Wikimedia Enterprise credentials are not configured (WIKIMEDIA_ENTERPRISE_USERNAME / WIKIMEDIA_ENTERPRISE_PASSWORD)"
+    );
+  }
+  return { username, password };
+}
+
+async function wmeLogin(): Promise<WmeTokenState> {
+  const { username, password } = wmeCredentials();
+  const res = await fetch(`${WME_AUTH_ORIGIN}/v1/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    throw new WikipediaError(`Wikimedia Enterprise login failed (${res.status})`);
+  }
+  const data = (await res.json()) as {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+  };
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+}
+
+async function wmeRefresh(state: WmeTokenState): Promise<WmeTokenState> {
+  const { username } = wmeCredentials();
+  const res = await fetch(`${WME_AUTH_ORIGIN}/v1/token-refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, refresh_token: state.refreshToken }),
+  });
+  if (!res.ok) return wmeLogin();
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  return {
+    accessToken: data.access_token,
+    refreshToken: state.refreshToken,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+}
+
+const WME_TOKEN_EXPIRY_BUFFER_MS = 30_000;
+
+async function wmeGetAccessToken(forceRefresh = false): Promise<string> {
+  if (
+    !forceRefresh &&
+    wmeTokenState &&
+    wmeTokenState.expiresAt - WME_TOKEN_EXPIRY_BUFFER_MS > Date.now()
+  ) {
+    return wmeTokenState.accessToken;
+  }
+  if (!wmeLoginPromise) {
+    const current = wmeTokenState;
+    wmeLoginPromise = (
+      forceRefresh || !current ? wmeLogin() : wmeRefresh(current)
+    ).finally(() => {
+      wmeLoginPromise = null;
+    });
+  }
+  wmeTokenState = await wmeLoginPromise;
+  return wmeTokenState.accessToken;
+}
+
+interface WmeArticle {
+  name: string;
+  article_body?: { html?: string };
+}
+
+async function wmeFetchArticle(title: string, retryOn401 = true): Promise<WmeArticle[]> {
+  const accessToken = await wmeGetAccessToken();
+  const encodedTitle = encodeURIComponent(title.replace(/ /g, "_"));
+  const res = await fetchWithRetry(`${WME_API_ORIGIN}/v2/articles/${encodedTitle}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      filters: [{ field: "is_part_of.identifier", value: WME_PROJECT }],
+      fields: ["name", "article_body"],
+      limit: 1,
+    }),
+  });
+
+  if (res.status === 401 && retryOn401) {
+    await wmeGetAccessToken(true);
+    return wmeFetchArticle(title, false);
+  }
+  if (res.status === 404) return [];
+  if (!res.ok) {
+    throw new WikipediaError(`Wikimedia Enterprise request failed (${res.status})`);
+  }
+  return res.json() as Promise<WmeArticle[]>;
 }
 
 /**
@@ -260,28 +431,24 @@ export async function fetchRandomStartArticle(): Promise<WikiArticle> {
 }
 
 export async function fetchArticle(title: string): Promise<WikiArticle> {
-  const encodedTitle = encodeURIComponent(title.replace(/ /g, "_"));
-  const url = `${WIKI_ORIGIN}/api/rest_v1/page/html/${encodedTitle}`;
-  const res = await fetchWithRetry(url);
-
-  if (!res.ok) {
-    throw new WikipediaError(`Could not load "${title}" from Wikipedia (${res.status})`);
-  }
-
+  let results = await wmeFetchArticle(title);
   let canonicalTitle = title;
-  try {
-    const finalUrl = new URL(res.url);
-    const marker = "/page/html/";
-    const idx = finalUrl.pathname.indexOf(marker);
-    if (idx !== -1) {
-      const rawTitle = finalUrl.pathname.slice(idx + marker.length);
-      canonicalTitle = decodeParsoidTitle(rawTitle);
+
+  if (results.length === 0) {
+    const redirectTarget = await resolveRedirectTitle(title);
+    if (!redirectTarget) {
+      throw new WikipediaError(`Could not load "${title}" from Wikipedia (404)`);
     }
-  } catch {
-    // fall back to the requested title if the response URL is unusable
+    canonicalTitle = redirectTarget;
+    results = await wmeFetchArticle(canonicalTitle);
+    if (results.length === 0) {
+      throw new WikipediaError(`Could not load "${canonicalTitle}" from Wikipedia (404)`);
+    }
+  } else {
+    canonicalTitle = results[0].name;
   }
 
-  const rawHtml = await res.text();
+  const rawHtml = results[0].article_body?.html ?? "";
   const html = processArticleHtml(rawHtml);
 
   return {

@@ -77,10 +77,7 @@ export function useWikiRace() {
   const stopwatch = useStopwatch();
   const loadRequestId = useRef(0);
 
-  // Guards against a load being superseded by a newer one before it resolves
-  // (e.g. React Strict Mode double-invoking the mount effect in dev, which
-  // would otherwise fire two fetches and flash the first article before the
-  // second replaces it).
+  // Guards against a load being superseded by a newer one before it resolves.
   const runLoad = useCallback(
     async (loadStart: () => Promise<WikiArticleResponse>) => {
       const requestId = ++loadRequestId.current;
@@ -112,7 +109,22 @@ export function useWikiRace() {
   // For effects (mount, realtime round changes): never synchronously
   // dispatches, so it's safe to call from a useEffect body. Callers rely on
   // the reducer's default "loading" status already covering the initial UI.
-  const loadInBackground = runLoad;
+  //
+  // Idempotent per hook instance (unlike `start`): React Strict Mode
+  // double-invokes a mount effect in dev without actually remounting the
+  // component, so the ref below — not just `loadRequestId` above — is what
+  // stops that from firing the underlying fetch (e.g. the random-article
+  // API) twice. A real remount gets a fresh hook instance and thus a fresh
+  // ref, so this never blocks a legitimate reload.
+  const hasLoadedInBackgroundRef = useRef(false);
+  const loadInBackground = useCallback(
+    (loadStart: () => Promise<WikiArticleResponse>) => {
+      if (hasLoadedInBackgroundRef.current) return;
+      hasLoadedInBackgroundRef.current = true;
+      void runLoad(loadStart);
+    },
+    [runLoad]
+  );
 
   const handleNavigate = useCallback(
     async (
