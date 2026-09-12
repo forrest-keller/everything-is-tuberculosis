@@ -11,19 +11,27 @@ create table if not exists public.daily_challenges (
   created_at timestamptz not null default now()
 );
 
+-- A row is a server-tracked play-through: born "in_progress" the moment a
+-- player starts (via a server route, which stamps started_at itself) and
+-- only ever advanced to "finished" by that same server, using its own clock
+-- and click count. The client never writes clicks/duration/path directly.
 create table if not exists public.daily_scores (
   id uuid primary key default gen_random_uuid(),
   challenge_date date not null references public.daily_challenges (challenge_date) on delete cascade,
   player_id uuid not null,
   player_name text not null check (char_length(player_name) between 1 and 32),
-  clicks integer not null check (clicks >= 0),
-  duration_ms integer not null check (duration_ms >= 0),
+  status text not null default 'in_progress' check (status in ('in_progress', 'finished')),
+  started_at timestamptz not null default now(),
+  clicks integer not null default 0 check (clicks >= 0),
+  duration_ms integer not null default 0 check (duration_ms >= 0),
   path jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 
 create index if not exists daily_scores_leaderboard_idx
   on public.daily_scores (challenge_date, clicks asc, duration_ms asc);
+create index if not exists daily_scores_in_progress_idx
+  on public.daily_scores (challenge_date, player_id, status);
 
 -- ============ Party mode ============
 
@@ -48,13 +56,17 @@ create table if not exists public.party_players (
 
 create index if not exists party_players_session_idx on public.party_players (session_id);
 
+-- Same server-tracked-attempt shape as daily_scores, keyed per round instead
+-- of per challenge_date.
 create table if not exists public.party_round_results (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references public.party_sessions (id) on delete cascade,
   round_number integer not null,
   player_id uuid not null references public.party_players (id) on delete cascade,
-  clicks integer not null check (clicks >= 0),
-  duration_ms integer not null check (duration_ms >= 0),
+  status text not null default 'in_progress' check (status in ('in_progress', 'finished')),
+  started_at timestamptz not null default now(),
+  clicks integer not null default 0 check (clicks >= 0),
+  duration_ms integer not null default 0 check (duration_ms >= 0),
   path jsonb not null default '[]'::jsonb,
   finished_at timestamptz not null default now(),
   unique (session_id, round_number, player_id)
@@ -79,9 +91,14 @@ create trigger party_sessions_set_updated_at
   for each row execute function public.set_updated_at();
 
 -- ============ Row Level Security ============
--- This is a casual, name-only game with no Supabase Auth, so policies are
--- intentionally permissive (anyone can read/write game state). Don't put
+-- This is a casual, name-only game with no Supabase Auth, so most policies
+-- are intentionally permissive (anyone can read/write game state). Don't put
 -- anything sensitive in these tables.
+--
+-- daily_scores and party_round_results are the exception: those rows are
+-- created and updated exclusively by server routes using the service-role
+-- key (which bypasses RLS), so the browser gets read-only access to them —
+-- otherwise a client could just insert a fabricated score directly.
 
 alter table public.daily_challenges enable row level security;
 alter table public.daily_scores enable row level security;
@@ -96,8 +113,6 @@ create policy "public insert daily_challenges" on public.daily_challenges for in
 
 drop policy if exists "public read daily_scores" on public.daily_scores;
 create policy "public read daily_scores" on public.daily_scores for select using (true);
-drop policy if exists "public insert daily_scores" on public.daily_scores;
-create policy "public insert daily_scores" on public.daily_scores for insert with check (true);
 
 drop policy if exists "public read party_sessions" on public.party_sessions;
 create policy "public read party_sessions" on public.party_sessions for select using (true);
@@ -115,8 +130,6 @@ create policy "public update party_players" on public.party_players for update u
 
 drop policy if exists "public read party_round_results" on public.party_round_results;
 create policy "public read party_round_results" on public.party_round_results for select using (true);
-drop policy if exists "public insert party_round_results" on public.party_round_results;
-create policy "public insert party_round_results" on public.party_round_results for insert with check (true);
 
 -- ============ Realtime ============
 -- Lets clients subscribe to live changes for a party session (lobby joins,
