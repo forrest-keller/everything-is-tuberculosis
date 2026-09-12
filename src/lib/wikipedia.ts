@@ -159,9 +159,25 @@ function processArticleHtml(rawHtml: string): string {
 
   // Wikipedia tables can be wider than the game's article column (many
   // columns, long unbroken cell content). Without a scroll container they
-  // just bust out of the page instead of scrolling.
+  // just bust out of the page instead of scrolling. Infoboxes are excluded
+  // here — they get their own dedicated float wrapper below instead, since
+  // this plain unfloated wrapper would break their sit-beside-the-text
+  // layout (the wrapper would stack below the float instead of beside it).
   $("table").each((_, el) => {
-    $(el).wrap('<div class="wiki-table-scroll"></div>');
+    const table = $(el);
+    if (table.hasClass("infobox") || table.parents(".infobox").length > 0) return;
+    table.wrap('<div class="wiki-table-scroll"></div>');
+  });
+
+  // Infoboxes need their own wrapper too: CSS `overflow` doesn't reliably
+  // clip/scroll a <table> element directly in Chromium/WebKit, so capping
+  // an over-tall infobox (some run thousands of pixels, e.g. athlete medal
+  // records) requires putting float + max-height + overflow on a wrapping
+  // div rather than the table itself.
+  $("table.infobox").each((_, el) => {
+    const table = $(el);
+    if (table.parents(".infobox").length > 0) return;
+    table.wrap('<div class="infobox-wrap"></div>');
   });
 
   const bodyHtml = $("body").html() ?? "";
