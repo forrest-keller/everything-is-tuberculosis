@@ -195,6 +195,11 @@
 .wiki-content .infobox table {
   width: 100%;
 }
+.wiki-content .infobox th,
+.wiki-content .infobox td {
+  padding: 0.25rem 0.375rem;
+  vertical-align: top;
+}
 /*
  * Medical/biographical/geographic infoboxes are often much taller than the
  * lead paragraph. Without this, the article's first heading (and any short
