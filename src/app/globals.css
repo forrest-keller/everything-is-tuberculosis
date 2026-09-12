@@ -139,13 +139,16 @@
  */
 .wiki-content :where(a.wiki-link) {
   color: var(--color-primary);
+  font-weight: 600;
   text-decoration: underline;
-  text-decoration-color: color-mix(in oklch, var(--color-primary) 35%, transparent);
+  text-decoration-thickness: 1.5px;
   text-underline-offset: 2px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background-color 0.1s ease-out;
 }
 .wiki-content :where(a.wiki-link):hover {
-  text-decoration-color: var(--color-primary);
+  background-color: color-mix(in oklch, var(--color-primary) 12%, transparent);
 }
 .wiki-content :where(a.wiki-link-disabled) {
   color: inherit;

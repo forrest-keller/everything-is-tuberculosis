@@ -7,17 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RULES } from "@/lib/rules";
-import { CalendarDays, MousePointerClick, Shuffle, Users } from "lucide-react";
+import { CalendarDays, Shuffle, Users } from "lucide-react";
 
 const MODES = [
   {
     href: "/solo",
     icon: Shuffle,
     title: "Solo",
-    description: "Jump straight in from a random article. No name, no waiting.",
+    description: "Jump straight in from a random article.",
     cta: "Play Solo",
   },
   {
@@ -44,10 +43,6 @@ export default function LandingPage() {
       </div>
       <div className="w-full max-w-3xl">
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
-          <Badge variant="secondary" className="gap-1.5">
-            <MousePointerClick className="size-3.5" />
-            A Wikipedia link-clicking game
-          </Badge>
           <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
             Everything is <span className="text-primary">Tuberculosis</span>
           </h1>
@@ -91,10 +86,6 @@ export default function LandingPage() {
             ))}
           </CardContent>
         </Card>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          We track your clicks and your time — good luck.
-        </p>
       </div>
     </div>
   );
