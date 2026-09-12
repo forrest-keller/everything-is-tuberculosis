@@ -106,7 +106,8 @@ function processArticleHtml(rawHtml: string): string {
   $(
     "script, style, link, base, .mw-editsection, .navbox, .vertical-navbox, " +
       ".navbox-styles, .ambox, .hatnote, .dablink, .rellink, .sistersitebox, " +
-      ".metadata, .noprint, table.mbox-small, .mw-empty-elt, .shortdescription"
+      ".metadata, .noprint, table.mbox-small, .mw-empty-elt, .shortdescription, " +
+      ".sidebar"
   ).remove();
 
   $("a").each((_, el) => {
