@@ -1,0 +1,100 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Ban,
+  Link2,
+  MousePointerClick,
+  Shuffle,
+  Stethoscope,
+  Timer,
+} from "lucide-react";
+
+const RULES = [
+  {
+    icon: Shuffle,
+    title: "You start somewhere random",
+    description:
+      "Every game drops you on a random Wikipedia article. Could be anything.",
+  },
+  {
+    icon: Link2,
+    title: "Click your way there",
+    description:
+      "Click any link inside the article to jump to the page it points to.",
+  },
+  {
+    icon: Ban,
+    title: "Only real articles are clickable",
+    description:
+      "Citations, external links, and non-article pages (categories, files, templates…) are disabled.",
+  },
+  {
+    icon: Stethoscope,
+    title: "The diagnosis is always the same",
+    description: 'Navigate link by link until you reach the "Tuberculosis" article.',
+  },
+];
+
+export default function LandingPage() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+      <div className="w-full max-w-2xl">
+        <div className="mb-8 flex flex-col items-center gap-4 text-center">
+          <Badge variant="secondary" className="gap-1.5">
+            <MousePointerClick className="size-3.5" />
+            A Wikipedia link-clicking game
+          </Badge>
+          <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
+            Everything is{" "}
+            <span className="text-primary">Tuberculosis</span>
+          </h1>
+          <p className="max-w-lg text-balance text-muted-foreground">
+            No matter where Wikipedia drops you, every article is secretly just a
+            few clicks away from Tuberculosis. Prove it — as fast as you can, in
+            as few clicks as possible.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>How to play</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            {RULES.map(({ icon: Icon, title, description }) => (
+              <div key={title} className="flex gap-3 rounded-lg border p-3">
+                <Icon className="size-5 shrink-0 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">{title}</p>
+                  <p className="text-sm text-muted-foreground">{description}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <Button
+            size="lg"
+            className="gap-2 px-8"
+            nativeButton={false}
+            render={<Link href="/game" />}
+          >
+            <Timer className="size-4" />
+            Start Game
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            We track your clicks and your time — good luck.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
