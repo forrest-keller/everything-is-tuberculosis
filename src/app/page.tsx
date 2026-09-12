@@ -7,9 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RULES } from "@/lib/rules";
-import { CalendarDays, Shuffle, Users } from "lucide-react";
+import { CalendarDays, Info, Shuffle, Users } from "lucide-react";
 
 const MODES = [
   {
@@ -52,6 +53,24 @@ export default function LandingPage() {
             as few clicks as possible.
           </p>
         </div>
+
+        <Alert className="mb-6">
+          <Info />
+          <AlertDescription>
+            This is an unofficial fan project and is not affiliated with or
+            endorsed by the Wikimedia Foundation. It&apos;s inspired by, but
+            likewise not affiliated with or endorsed by, John Green&apos;s
+            book of the same name — check out{" "}
+            <a
+              href="https://everythingistb.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Everything Is Tuberculosis
+            </a>{" "}
+            for the real story.
+          </AlertDescription>
+        </Alert>
 
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
           {MODES.map(({ href, icon: Icon, title, description, cta }) => (
