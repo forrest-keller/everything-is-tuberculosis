@@ -5,13 +5,6 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 const WIKI_ORIGIN = "https://en.wikipedia.org";
 const TARGET_TITLE = "Tuberculosis";
 
-// Counts hits to the free public Wikipedia API (fetchJson's only caller
-// base — Wikimedia Enterprise calls go through fetchWithRetry directly, not
-// fetchJson). Per-process only, like wmeTokenState below; it resets on
-// restart/cold start. See the public-API-dependency risk in
-// docs/wikimedia-enterprise-scaling-plan.md.
-let publicApiHitCount = 0;
-
 // Wikimedia Enterprise API: https://enterprise.wikimedia.com/docs/
 // Used for article content. It has no random-article or redirect-lookup
 // endpoint, so those two operations still go through the free public APIs
@@ -266,8 +259,6 @@ async function fetchWithRetry(
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  publicApiHitCount++;
-  console.log(`[wikipedia] public API hit #${publicApiHitCount}: ${url}`);
   const res = await fetchWithRetry(url, init);
   if (!res.ok) {
     throw new WikipediaError(`Wikipedia API request failed (${res.status})`);
