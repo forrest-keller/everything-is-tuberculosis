@@ -9,41 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
-import {
-  Ban,
-  CalendarDays,
-  Link2,
-  MousePointerClick,
-  Shuffle,
-  Stethoscope,
-  Users,
-} from "lucide-react";
-
-const RULES = [
-  {
-    icon: Shuffle,
-    title: "You start somewhere random",
-    description:
-      "Every game drops you on a random Wikipedia article. Could be anything.",
-  },
-  {
-    icon: Link2,
-    title: "Click your way there",
-    description:
-      "Click any link inside the article to jump to the page it points to.",
-  },
-  {
-    icon: Ban,
-    title: "Only real articles are clickable",
-    description:
-      "Citations, external links, and non-article pages (categories, files, templates…) are disabled.",
-  },
-  {
-    icon: Stethoscope,
-    title: "The diagnosis is always the same",
-    description: 'Navigate link by link until you reach the "Tuberculosis" article.',
-  },
-];
+import { RULES } from "@/lib/rules";
+import { CalendarDays, MousePointerClick, Shuffle, Users } from "lucide-react";
 
 const MODES = [
   {

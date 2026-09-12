@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +13,13 @@ import { RaceArticleCard } from "@/components/race-article-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWikiRace } from "@/hooks/use-wiki-race";
-import { fetchArticleByTitle } from "@/lib/wiki-client";
 import {
   type DailyChallenge,
   type DailyScore,
+  createDailyAttempt,
   fetchDailyLeaderboard,
   fetchTodayChallenge,
-  submitDailyScore,
+  navigateDailyAttempt,
 } from "@/lib/daily";
 import { getOrCreatePlayerId, getSavedPlayerName, savePlayerName } from "@/lib/player-identity";
 import { AlertTriangle, CalendarDays, PartyPopper } from "lucide-react";
@@ -40,7 +40,8 @@ function PageShell({ children }: { children: ReactNode }) {
 export default function DailyPage() {
   const race = useWikiRace();
   const [playerId] = useState(() => getOrCreatePlayerId());
-  const submittedRef = useRef(false);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [finalResult, setFinalResult] = useState<{ clicks: number; elapsedMs: number } | null>(null);
 
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [challengeError, setChallengeError] = useState<string | null>(null);
@@ -48,7 +49,6 @@ export default function DailyPage() {
   const [playerName, setPlayerName] = useState("");
   const [leaderboard, setLeaderboard] = useState<DailyScore[] | null>(null);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   const refreshLeaderboard = useCallback(async (challengeDate: string) => {
     try {
@@ -70,47 +70,42 @@ export default function DailyPage() {
       );
   }, [refreshLeaderboard]);
 
-  useEffect(() => {
-    if (race.status !== "won" || !challenge || submittedRef.current) return;
-    submittedRef.current = true;
-    setSubmitting(true);
-    submitDailyScore({
-      challengeDate: challenge.challengeDate,
-      playerId,
-      playerName,
-      clicks: race.clicks,
-      durationMs: race.elapsedMs,
-      path: race.path,
-    })
-      .then(() => refreshLeaderboard(challenge.challengeDate))
-      .catch((err: unknown) =>
-        setLeaderboardError(err instanceof Error ? err.message : "Failed to save your score.")
-      )
-      .finally(() => setSubmitting(false));
-  }, [
-    race.status,
-    race.clicks,
-    race.elapsedMs,
-    race.path,
-    challenge,
-    playerId,
-    playerName,
-    refreshLeaderboard,
-  ]);
+  // Proxies every click through the server-tracked attempt: clicks and timing
+  // are counted/stamped by the server, never taken from the client. The
+  // server writes the finished score row itself the moment the winning click
+  // lands, so there's nothing left to submit — just refresh the leaderboard
+  // to pick up that row.
+  async function navigate(title: string) {
+    if (!attemptId || !challenge) throw new Error("No active attempt.");
+    const result = await navigateDailyAttempt(attemptId, playerId, title);
+    if (result.isTarget && result.elapsedMs !== undefined) {
+      setFinalResult({ clicks: result.clicks, elapsedMs: result.elapsedMs });
+      void refreshLeaderboard(challenge.challengeDate);
+    }
+    return result;
+  }
 
   function handleNameSubmit(name: string) {
     if (!challenge) return;
     savePlayerName(name);
     setPlayerName(name);
     setStarted(true);
-    submittedRef.current = false;
-    race.start(() => fetchArticleByTitle(challenge.startTitle));
+    setFinalResult(null);
+    race.start(async () => {
+      const attempt = await createDailyAttempt({ playerId, playerName: name });
+      setAttemptId(attempt.attemptId);
+      return attempt.article;
+    });
   }
 
   function retryToday() {
     if (!challenge) return;
-    submittedRef.current = false;
-    race.start(() => fetchArticleByTitle(challenge.startTitle));
+    setFinalResult(null);
+    race.start(async () => {
+      const attempt = await createDailyAttempt({ playerId, playerName });
+      setAttemptId(attempt.attemptId);
+      return attempt.article;
+    });
   }
 
   if (challengeError) {
@@ -199,16 +194,16 @@ export default function DailyPage() {
 
   if (race.status === "won") {
     const myRank = leaderboard?.findIndex((s) => s.playerId === playerId) ?? -1;
+    const clicks = finalResult?.clicks ?? race.clicks;
+    const elapsedMs = finalResult?.elapsedMs ?? race.elapsedMs;
     return (
       <PageShell>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <PartyPopper className="size-8 text-primary" />
           <h1 className="font-heading text-2xl font-semibold">Nice work, {playerName}!</h1>
           <p className="text-sm text-muted-foreground">
-            {race.clicks} {race.clicks === 1 ? "click" : "clicks"} ·{" "}
-            {(race.elapsedMs / 1000).toFixed(1)}s
+            {clicks} {clicks === 1 ? "click" : "clicks"} · {(elapsedMs / 1000).toFixed(1)}s
             {myRank >= 0 && ` · rank #${myRank + 1} today`}
-            {submitting && " · saving…"}
           </p>
         </div>
 
@@ -257,7 +252,11 @@ export default function DailyPage() {
         onRestart={retryToday}
       />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
-        <RaceArticleCard race={race} onNavigate={race.handleNavigate} onRetry={retryToday} />
+        <RaceArticleCard
+          race={race}
+          onNavigate={(title) => race.handleNavigate(title, navigate)}
+          onRetry={retryToday}
+        />
       </main>
     </div>
   );

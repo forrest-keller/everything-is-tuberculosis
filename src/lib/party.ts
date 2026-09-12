@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase";
+import type { WikiArticleResponse } from "@/lib/wiki-client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type PartyStatus = "lobby" | "playing" | "round_results" | "finished";
@@ -25,6 +26,7 @@ export interface PartyRoundResult {
   sessionId: string;
   roundNumber: number;
   playerId: string;
+  status: "in_progress" | "finished";
   clicks: number;
   durationMs: number;
   path: string[];
@@ -61,6 +63,7 @@ function mapResult(row: any): PartyRoundResult {
     sessionId: row.session_id,
     roundNumber: row.round_number,
     playerId: row.player_id,
+    status: row.status,
     clicks: row.clicks,
     durationMs: row.duration_ms,
     path: row.path ?? [],
@@ -134,6 +137,7 @@ export async function fetchPartyRoundResults(
     .select("*")
     .eq("session_id", sessionId)
     .eq("round_number", roundNumber)
+    .eq("status", "finished")
     .order("clicks", { ascending: true })
     .order("duration_ms", { ascending: true });
   if (error) throw new Error(error.message);
@@ -149,27 +153,52 @@ export async function setPlayerReady(playerId: string, isReady: boolean): Promis
   if (error) throw new Error(error.message);
 }
 
-export async function submitRoundResult(params: {
-  sessionId: string;
+export interface PartyAttempt {
   roundNumber: number;
-  playerId: string;
+  article: WikiArticleResponse;
+}
+
+export interface PartyNavigateResult extends WikiArticleResponse {
   clicks: number;
-  durationMs: number;
-  path: string[];
-}): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("party_round_results").upsert(
-    {
-      session_id: params.sessionId,
-      round_number: params.roundNumber,
-      player_id: params.playerId,
-      clicks: params.clicks,
-      duration_ms: params.durationMs,
-      path: params.path,
-    },
-    { onConflict: "session_id,round_number,player_id" }
-  );
-  if (error) throw new Error(error.message);
+  elapsedMs?: number;
+}
+
+/**
+ * Starts (or restarts, if called again before finishing) a server-tracked
+ * attempt at the session's current round. The server records the start time
+ * itself; every subsequent click goes through `navigatePartyAttempt`.
+ */
+export async function createPartyAttempt(code: string, playerId: string): Promise<PartyAttempt> {
+  const res = await fetch(`/api/party/${code}/attempt`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId }),
+  });
+  const data = await readJsonOrThrow(res);
+  return {
+    roundNumber: data.roundNumber,
+    article: { title: data.title, html: data.html, isTarget: data.isTarget },
+  };
+}
+
+/**
+ * Proxies one click through the server, which fetches the article itself,
+ * increments the attempt's click count, and — if it's the target — stamps
+ * the authoritative duration. Clicks and timing are never taken from the
+ * client.
+ */
+export async function navigatePartyAttempt(
+  code: string,
+  playerId: string,
+  roundNumber: number,
+  title: string
+): Promise<PartyNavigateResult> {
+  const res = await fetch(`/api/party/${code}/attempt/navigate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId, roundNumber, title }),
+  });
+  return readJsonOrThrow(res);
 }
 
 /** Flips a session from "playing" to "round_results" once every current
@@ -185,7 +214,8 @@ export async function completeRoundIfDone(
       .from("party_round_results")
       .select("id", { count: "exact", head: true })
       .eq("session_id", sessionId)
-      .eq("round_number", roundNumber),
+      .eq("round_number", roundNumber)
+      .eq("status", "finished"),
   ]);
 
   if (playerCount && resultCount !== null && resultCount >= playerCount) {

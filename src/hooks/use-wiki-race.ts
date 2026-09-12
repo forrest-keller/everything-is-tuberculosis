@@ -107,11 +107,14 @@ export function useWikiRace() {
   const loadInBackground = runLoad;
 
   const handleNavigate = useCallback(
-    async (title: string) => {
+    async (
+      title: string,
+      navigate: (title: string) => Promise<WikiArticleResponse> = fetchArticleByTitle
+    ) => {
       if (state.status !== "playing") return;
       dispatch({ type: "NAV_START" });
       try {
-        const article = await fetchArticleByTitle(title);
+        const article = await navigate(title);
         if (article.isTarget) stopwatch.stop();
         dispatch({
           type: "NAV_SUCCESS",

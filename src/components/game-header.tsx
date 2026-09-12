@@ -4,8 +4,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { HowToPlayDialog } from "@/components/how-to-play-dialog";
 import { formatDuration } from "@/lib/format";
-import { Home, MousePointerClick, RotateCcw, Target, Timer } from "lucide-react";
+import { Home, MousePointerClick, RotateCcw, Timer } from "lucide-react";
 
 interface GameHeaderProps {
   clicks: number;
@@ -41,16 +42,13 @@ export function GameHeader({
             <Timer className="size-3.5" />
             {formatDuration(elapsedMs)}
           </Badge>
-          <Badge variant="secondary" className="hidden gap-1.5 sm:inline-flex">
-            <Target className="size-3.5" />
-            Target: Tuberculosis
-          </Badge>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="hidden max-w-48 truncate text-sm text-muted-foreground md:inline">
             {currentTitle}
           </span>
+          <HowToPlayDialog />
           <Button variant="outline" size="sm" onClick={onRestart} className="gap-1.5">
             <RotateCcw className="size-3.5" />
             Restart

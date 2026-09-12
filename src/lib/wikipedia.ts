@@ -157,6 +157,13 @@ function processArticleHtml(rawHtml: string): string {
 
   $("table, td, th, figure, span, div").removeAttr("style");
 
+  // Wikipedia tables can be wider than the game's article column (many
+  // columns, long unbroken cell content). Without a scroll container they
+  // just bust out of the page instead of scrolling.
+  $("table").each((_, el) => {
+    $(el).wrap('<div class="wiki-table-scroll"></div>');
+  });
+
   const bodyHtml = $("body").html() ?? "";
 
   return sanitizeHtml(bodyHtml, {

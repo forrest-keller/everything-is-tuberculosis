@@ -14,7 +14,6 @@ import { RaceArticleCard } from "@/components/race-article-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWikiRace } from "@/hooks/use-wiki-race";
-import { fetchArticleByTitle } from "@/lib/wiki-client";
 import {
   type PartyPlayer,
   type PartyRoundResult,
@@ -22,13 +21,14 @@ import {
   advancePartyRound,
   applyRealtimeChange,
   completeRoundIfDone,
+  createPartyAttempt,
   fetchPartyPlayers,
   fetchPartyRoundResults,
   fetchPartySessionByCode,
   joinPartySession,
+  navigatePartyAttempt,
   setPlayerReady,
   subscribeToPartySession,
-  submitRoundResult,
 } from "@/lib/party";
 import { getOrCreatePlayerId, getSavedPlayerName, savePlayerName } from "@/lib/player-identity";
 import { AlertTriangle, Check, Copy, Crown, Loader2, Users } from "lucide-react";
@@ -129,6 +129,9 @@ export function PartyRoom({ code }: PartyRoomProps) {
       onResultChange: (change) => {
         // Ignore stray events for a round we've already moved past.
         if (change.row && change.row.roundNumber !== roundNumberRef.current) return;
+        // Attempts are created (and updated on every click) well before a
+        // player finishes — only a "finished" row belongs in the results list.
+        if (change.row && change.row.status !== "finished") return;
         setResults((prev) =>
           applyRealtimeChange(prev, change).sort(
             (a, b) => a.clicks - b.clicks || a.durationMs - b.durationMs
@@ -199,21 +202,13 @@ export function PartyRoom({ code }: PartyRoomProps) {
     }
   }
 
-  const handleRoundWin = useCallback(
-    async (result: { clicks: number; durationMs: number; path: string[] }) => {
-      if (!session) return;
-      await submitRoundResult({
-        sessionId: session.id,
-        roundNumber: session.roundNumber,
-        playerId,
-        clicks: result.clicks,
-        durationMs: result.durationMs,
-        path: result.path,
-      });
-      await completeRoundIfDone(session.id, session.roundNumber);
-    },
-    [session, playerId]
-  );
+  // The server already wrote this player's finished round_results row (see
+  // navigatePartyAttempt) the moment their winning click landed — this just
+  // checks whether the round can now advance for everyone.
+  const handleRoundWin = useCallback(async () => {
+    if (!session) return;
+    await completeRoundIfDone(session.id, session.roundNumber);
+  }, [session]);
 
   async function handleReadyUp() {
     await setPlayerReady(playerId, true);
@@ -288,7 +283,8 @@ export function PartyRoom({ code }: PartyRoomProps) {
     return (
       <PartyRound
         key={`${session.id}-${session.roundNumber}`}
-        startTitle={session.currentStartTitle}
+        code={session.code}
+        playerId={playerId}
         roundNumber={session.roundNumber}
         resultsCount={results.length}
         playersCount={players.length}
@@ -427,38 +423,59 @@ function PlayerList({ players, hostId }: { players: PartyPlayer[]; hostId: strin
 }
 
 interface PartyRoundProps {
-  startTitle: string;
+  code: string;
+  playerId: string;
   roundNumber: number;
   resultsCount: number;
   playersCount: number;
-  onWin: (result: { clicks: number; durationMs: number; path: string[] }) => void;
+  onWin: () => void;
 }
 
-function PartyRound({ startTitle, roundNumber, resultsCount, playersCount, onWin }: PartyRoundProps) {
+function PartyRound({ code, playerId, roundNumber, resultsCount, playersCount, onWin }: PartyRoundProps) {
   const race = useWikiRace();
   const firedRef = useRef(false);
+  const [finalResult, setFinalResult] = useState<{ clicks: number; elapsedMs: number } | null>(null);
+
+  const startAttempt = useCallback(async () => {
+    const attempt = await createPartyAttempt(code, playerId);
+    return attempt.article;
+  }, [code, playerId]);
+
+  // Proxies every click through the server-tracked attempt: clicks and
+  // timing are counted/stamped by the server, never taken from the client.
+  const navigate = useCallback(
+    async (title: string) => {
+      const result = await navigatePartyAttempt(code, playerId, roundNumber, title);
+      if (result.isTarget && result.elapsedMs !== undefined) {
+        setFinalResult({ clicks: result.clicks, elapsedMs: result.elapsedMs });
+      }
+      return result;
+    },
+    [code, playerId, roundNumber]
+  );
 
   useEffect(() => {
-    race.loadInBackground(() => fetchArticleByTitle(startTitle));
+    race.loadInBackground(startAttempt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (race.status === "won" && !firedRef.current) {
       firedRef.current = true;
-      void onWin({ clicks: race.clicks, durationMs: race.elapsedMs, path: race.path });
+      void onWin();
     }
-  }, [race.status, race.clicks, race.elapsedMs, race.path, onWin]);
+  }, [race.status, onWin]);
 
   if (race.status === "won") {
+    const clicks = finalResult?.clicks ?? race.clicks;
+    const elapsedMs = finalResult?.elapsedMs ?? race.elapsedMs;
     return (
       <PageShell>
         <div className="text-center">
           <Check className="mx-auto mb-3 size-8 text-primary" />
           <h1 className="mb-1 font-heading text-2xl font-semibold">You made it!</h1>
           <p className="mb-4 text-sm text-muted-foreground">
-            {race.clicks} {race.clicks === 1 ? "click" : "clicks"} ·{" "}
-            {(race.elapsedMs / 1000).toFixed(1)}s
+            {clicks} {clicks === 1 ? "click" : "clicks"} · {(elapsedMs / 1000).toFixed(1)}s
           </p>
           <p className="text-sm text-muted-foreground">
             Waiting for the rest of the group ({resultsCount}/{playersCount} finished)…
@@ -475,14 +492,20 @@ function PartyRound({ startTitle, roundNumber, resultsCount, playersCount, onWin
         elapsedMs={race.elapsedMs}
         currentTitle={race.title}
         isRunning={race.status === "playing" || race.status === "navigating"}
-        onRestart={() => race.start(() => fetchArticleByTitle(startTitle))}
+        onRestart={() => {
+          setFinalResult(null);
+          race.start(startAttempt);
+        }}
       />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
         <p className="mb-3 text-xs text-muted-foreground">Round {roundNumber}</p>
         <RaceArticleCard
           race={race}
-          onNavigate={race.handleNavigate}
-          onRetry={() => race.start(() => fetchArticleByTitle(startTitle))}
+          onNavigate={(title) => race.handleNavigate(title, navigate)}
+          onRetry={() => {
+            setFinalResult(null);
+            race.start(startAttempt);
+          }}
         />
       </main>
     </div>

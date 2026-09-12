@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase";
+import type { WikiArticleResponse } from "@/lib/wiki-client";
 
 export interface DailyChallenge {
   challengeDate: string;
@@ -15,6 +16,16 @@ export interface DailyScore {
   createdAt: string;
 }
 
+export interface DailyAttempt {
+  attemptId: string;
+  article: WikiArticleResponse;
+}
+
+export interface DailyNavigateResult extends WikiArticleResponse {
+  clicks: number;
+  elapsedMs?: number;
+}
+
 export function getTodayDateString(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -26,24 +37,47 @@ export async function fetchTodayChallenge(): Promise<DailyChallenge> {
   return { challengeDate: data.challenge_date, startTitle: data.start_title };
 }
 
-export async function submitDailyScore(params: {
-  challengeDate: string;
+/**
+ * Starts a new server-tracked attempt at today's challenge. The server
+ * records the start time and the winning article itself; the returned
+ * `attemptId` is passed to `navigateDailyAttempt` for every subsequent click.
+ */
+export async function createDailyAttempt(params: {
   playerId: string;
   playerName: string;
-  clicks: number;
-  durationMs: number;
-  path: string[];
-}): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("daily_scores").insert({
-    challenge_date: params.challengeDate,
-    player_id: params.playerId,
-    player_name: params.playerName,
-    clicks: params.clicks,
-    duration_ms: params.durationMs,
-    path: params.path,
+}): Promise<DailyAttempt> {
+  const res = await fetch("/api/daily/attempt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
   });
-  if (error) throw new Error(error.message);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Failed to start today's attempt.");
+  return {
+    attemptId: data.attemptId,
+    article: { title: data.title, html: data.html, isTarget: data.isTarget },
+  };
+}
+
+/**
+ * Proxies one click through the server, which fetches the article itself,
+ * increments the attempt's click count, and — if it's the target — stamps
+ * the authoritative duration. Clicks and timing are never taken from the
+ * client.
+ */
+export async function navigateDailyAttempt(
+  attemptId: string,
+  playerId: string,
+  title: string
+): Promise<DailyNavigateResult> {
+  const res = await fetch(`/api/daily/attempt/${attemptId}/navigate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId, title }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? `Failed to load "${title}".`);
+  return data;
 }
 
 export async function fetchDailyLeaderboard(
@@ -55,6 +89,7 @@ export async function fetchDailyLeaderboard(
     .from("daily_scores")
     .select("id, player_id, player_name, clicks, duration_ms, path, created_at")
     .eq("challenge_date", challengeDate)
+    .eq("status", "finished")
     .order("clicks", { ascending: true })
     .order("duration_ms", { ascending: true })
     .limit(limit);

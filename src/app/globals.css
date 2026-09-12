@@ -201,6 +201,10 @@
      white canvas — they need this in light mode too, not just dark. */
   background-color: #fff;
 }
+.wiki-content .wiki-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
 .wiki-content table.wikitable {
   border-collapse: collapse;
   font-size: 0.875rem;
