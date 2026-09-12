@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import sanitizeHtml from "sanitize-html";
+import { getSupabaseServiceClient } from "@/lib/supabase";
 
 const WIKI_ORIGIN = "https://en.wikipedia.org";
 const TARGET_TITLE = "Tuberculosis";
@@ -302,6 +303,82 @@ async function resolveRedirectTitle(title: string): Promise<string | null> {
   return page.title;
 }
 
+// Redirect targets rarely change, but they aren't permanent (disambiguation
+// cleanup, page moves/retargets), so a cache entry still needs a ceiling on
+// how long it's trusted without checking upstream again.
+const REDIRECT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+interface RedirectCacheRow {
+  canonical_title: string;
+  resolved_at: string;
+}
+
+/**
+ * Cache reads/writes are a pure optimization on top of resolveRedirectTitle,
+ * never load-bearing: any Supabase hiccup here should fall back to the live
+ * public API rather than break article loading.
+ */
+async function getCachedRedirect(rawTitle: string): Promise<string | null> {
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("redirect_cache")
+      .select("canonical_title, resolved_at")
+      .eq("raw_title", rawTitle)
+      .maybeSingle<RedirectCacheRow>();
+    if (error || !data) return null;
+    const age = Date.now() - new Date(data.resolved_at).getTime();
+    if (age > REDIRECT_CACHE_TTL_MS) return null;
+    return data.canonical_title;
+  } catch (err) {
+    console.error("[wikipedia] redirect cache read failed:", err);
+    return null;
+  }
+}
+
+async function putCachedRedirect(rawTitle: string, canonicalTitle: string): Promise<void> {
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { error } = await supabase
+      .from("redirect_cache")
+      .upsert({ raw_title: rawTitle, canonical_title: canonicalTitle, resolved_at: new Date().toISOString() });
+    if (error) console.error("[wikipedia] redirect cache write failed:", error.message);
+  } catch (err) {
+    console.error("[wikipedia] redirect cache write failed:", err);
+  }
+}
+
+async function invalidateCachedRedirect(rawTitle: string): Promise<void> {
+  try {
+    const supabase = getSupabaseServiceClient();
+    await supabase.from("redirect_cache").delete().eq("raw_title", rawTitle);
+  } catch (err) {
+    console.error("[wikipedia] redirect cache invalidation failed:", err);
+  }
+}
+
+interface ResolvedRedirect {
+  canonicalTitle: string;
+  /** Whether this came from the cache (unverified) vs. a live lookup just now. */
+  fromCache: boolean;
+}
+
+/**
+ * Cache-first wrapper around resolveRedirectTitle. A cache hit is trusted
+ * for content purposes too (see the self-healing check in fetchArticle):
+ * fromCache just tells the caller whether it's still worth re-checking
+ * upstream if the cached title turns out not to resolve after all.
+ */
+async function resolveCanonicalTitle(title: string): Promise<ResolvedRedirect | null> {
+  const cached = await getCachedRedirect(title);
+  if (cached) return { canonicalTitle: cached, fromCache: true };
+
+  const resolved = await resolveRedirectTitle(title);
+  if (!resolved) return null;
+  void putCachedRedirect(title, resolved);
+  return { canonicalTitle: resolved, fromCache: false };
+}
+
 interface WmeTokenState {
   accessToken: string;
   refreshToken: string;
@@ -435,12 +512,28 @@ export async function fetchArticle(title: string): Promise<WikiArticle> {
   let canonicalTitle = title;
 
   if (results.length === 0) {
-    const redirectTarget = await resolveRedirectTitle(title);
-    if (!redirectTarget) {
+    const resolved = await resolveCanonicalTitle(title);
+    if (!resolved) {
       throw new WikipediaError(`Could not load "${title}" from Wikipedia (404)`);
     }
-    canonicalTitle = redirectTarget;
+    canonicalTitle = resolved.canonicalTitle;
     results = await wmeFetchArticle(canonicalTitle);
+
+    // A cached mapping's target came back empty from Enterprise — either
+    // Enterprise never had it, or (the case that matters here) the redirect
+    // was retargeted/renamed upstream since we cached it. Only a *fresh*
+    // lookup distinguishes those, so re-resolve live once before concluding
+    // 404; a live lookup that already failed this way is a genuine miss.
+    if (results.length === 0 && resolved.fromCache) {
+      await invalidateCachedRedirect(title);
+      const fresh = await resolveRedirectTitle(title);
+      if (fresh) {
+        canonicalTitle = fresh;
+        results = await wmeFetchArticle(canonicalTitle);
+        if (results.length > 0) void putCachedRedirect(title, fresh);
+      }
+    }
+
     if (results.length === 0) {
       throw new WikipediaError(`Could not load "${canonicalTitle}" from Wikipedia (404)`);
     }

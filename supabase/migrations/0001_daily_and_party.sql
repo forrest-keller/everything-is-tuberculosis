@@ -75,6 +75,16 @@ create table if not exists public.party_round_results (
 create index if not exists party_round_results_lookup_idx
   on public.party_round_results (session_id, round_number);
 
+-- ============ Redirect cache (src/lib/wikipedia.ts) ============
+-- Caches redirect-title lookups so repeat clicks on the same redirect-titled
+-- link skip the free public MediaWiki API.
+
+create table if not exists public.redirect_cache (
+  raw_title text primary key,
+  canonical_title text not null,
+  resolved_at timestamptz not null default now()
+);
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -99,12 +109,18 @@ create trigger party_sessions_set_updated_at
 -- created and updated exclusively by server routes using the service-role
 -- key (which bypasses RLS), so the browser gets read-only access to them —
 -- otherwise a client could just insert a fabricated score directly.
+--
+-- redirect_cache is locked down further still: it's server-internal
+-- bookkeeping with no legitimate client read or write use, so it gets no
+-- public policies at all. A client-writable redirect map could be poisoned
+-- to point an arbitrary title at (or away from) the game's target article.
 
 alter table public.daily_challenges enable row level security;
 alter table public.daily_scores enable row level security;
 alter table public.party_sessions enable row level security;
 alter table public.party_players enable row level security;
 alter table public.party_round_results enable row level security;
+alter table public.redirect_cache enable row level security;
 
 drop policy if exists "public read daily_challenges" on public.daily_challenges;
 create policy "public read daily_challenges" on public.daily_challenges for select using (true);
