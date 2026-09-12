@@ -3,11 +3,17 @@
 import { useEffect, useRef } from "react";
 
 interface WikiArticleProps {
+  title: string;
   html: string;
   onNavigate: (title: string) => void;
 }
 
-export function WikiArticle({ html, onNavigate }: WikiArticleProps) {
+/** Canonical Wikipedia URL for a given article title, for CC BY-SA attribution. */
+function wikipediaArticleUrl(title: string): string {
+  return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+}
+
+export function WikiArticle({ title, html, onNavigate }: WikiArticleProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,12 +50,36 @@ export function WikiArticle({ html, onNavigate }: WikiArticleProps) {
   }
 
   return (
-    <div
-      ref={containerRef}
-      onClick={handleClick}
-      className="wiki-content prose prose-neutral dark:prose-invert max-w-none"
-      // Content is sanitized server-side in lib/wikipedia.ts before it ever reaches the client.
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div>
+      <div
+        ref={containerRef}
+        onClick={handleClick}
+        className="wiki-content prose prose-neutral dark:prose-invert max-w-none"
+        // Content is sanitized server-side in lib/wikipedia.ts before it ever reaches the client.
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      {/* CC BY-SA 4.0 requires attribution + a link back to the source article. */}
+      <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
+        Adapted from the Wikipedia article{" "}
+        <a
+          href={wikipediaArticleUrl(title)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          {title}
+        </a>
+        , available under the{" "}
+        <a
+          href="https://creativecommons.org/licenses/by-sa/4.0/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          CC BY-SA 4.0
+        </a>{" "}
+        license.
+      </p>
+    </div>
   );
 }
