@@ -16,3 +16,19 @@ try {
 afterEach(() => {
   cleanup();
 });
+
+// jsdom doesn't implement matchMedia — next-themes (ThemeProvider/useTheme)
+// calls it unconditionally on mount to detect the OS color scheme.
+if (typeof window !== "undefined" && !window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+}

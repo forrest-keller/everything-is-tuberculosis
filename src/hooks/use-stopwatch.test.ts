@@ -37,6 +37,12 @@ describe("useStopwatch", () => {
     expect(result.current.elapsedMs).toBe(stoppedAt);
   });
 
+  it("is a no-op calling stop before start", () => {
+    const { result } = renderHook(() => useStopwatch());
+    act(() => result.current.stop());
+    expect(result.current.elapsedMs).toBe(0);
+  });
+
   it("resets to zero when started again", () => {
     const { result } = renderHook(() => useStopwatch());
 

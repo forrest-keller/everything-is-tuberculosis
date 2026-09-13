@@ -77,4 +77,11 @@ describe("GET /api/daily/challenge", () => {
     expect(res.status).toBe(500);
     await expect(res.json()).resolves.toEqual({ error: "boom" });
   });
+
+  it("returns a default 500 message when something other than an Error is thrown", async () => {
+    fetchRandomStartArticle.mockRejectedValue("not an Error instance");
+    const res = await GET(new NextRequest("http://localhost/api/daily/challenge"));
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toEqual({ error: "Failed to load today's challenge." });
+  });
 });

@@ -73,6 +73,12 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
     expect(res.status).toBe(404);
   });
 
+  it("returns 500 when playerId isn't a valid uuid", async () => {
+    const session = await insertPartySession({ status: "playing" });
+    const res = await call(session.code, { playerId: "not-a-uuid", roundNumber: 1, title: "X" });
+    expect(res.status).toBe(500);
+  });
+
   it("returns 404 when the attempt doesn't exist", async () => {
     const session = await insertPartySession({ status: "playing" });
     const res = await call(session.code, {
@@ -180,5 +186,16 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
     const res = await call(session.code, { playerId: player.id, roundNumber, title: "X" });
     expect(res.status).toBe(502);
     await expect(res.json()).resolves.toEqual({ error: "Could not load it" });
+  });
+
+  it("returns a default 502 message when something other than a WikipediaError is thrown", async () => {
+    fetchArticle.mockRejectedValue("not an Error instance");
+    const { session, player, roundNumber } = await setUpInProgressAttempt();
+
+    const res = await call(session.code, { playerId: player.id, roundNumber, title: "X" });
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong talking to Wikipedia.",
+    });
   });
 });
