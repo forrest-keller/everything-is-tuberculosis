@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
-import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
+import { WikipediaError } from "@/lib/wikipedia";
+import { buildNavigationClickResponse, computeNavigationClick } from "@/lib/navigate-attempt";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 import { parseJsonBody, requiredString } from "@/lib/validation";
 
@@ -36,18 +37,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   try {
-    const article = await fetchArticle(title);
-    const clicks = attempt.clicks + 1;
-    const path = [...(attempt.path as string[]), article.title];
-
-    const update = article.isTarget
-      ? {
-          clicks,
-          path,
-          status: "finished",
-          duration_ms: Date.now() - new Date(attempt.started_at).getTime(),
-        }
-      : { clicks, path };
+    const { article, update } = await computeNavigationClick(title, {
+      clicks: attempt.clicks,
+      path: attempt.path as string[],
+      startedAt: attempt.started_at,
+    });
 
     const { data: updated, error: updateError } = await supabase
       .from("daily_scores")
@@ -62,13 +56,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
     }
 
-    return NextResponse.json({
-      title: article.title,
-      html: article.html,
-      isTarget: article.isTarget,
-      clicks: updated.clicks,
-      elapsedMs: article.isTarget ? updated.duration_ms : undefined,
-    });
+    return NextResponse.json(buildNavigationClickResponse(article, updated));
   } catch (error) {
     console.error("[/api/daily/attempt/[id]/navigate] failed:", error);
     const message =
