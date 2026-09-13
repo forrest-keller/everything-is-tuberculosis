@@ -32,9 +32,37 @@ test.describe("GameHeader", () => {
 
     await page.locator(".wiki-content").getByRole("link", { name: MIDDLE_TITLE }).click();
     await expect(page.getByText("1 click", { exact: true })).toBeVisible();
+  });
 
-    await page.getByRole("button", { name: "Home" }).click();
+  test("going home mid-race asks for confirmation before navigating away", async ({ page }) => {
+    await page.goto("/solo");
+    await expect(page.getByRole("heading", { level: 1, name: RANDOM_START_TITLE })).toBeVisible();
+
+    await page.getByRole("link", { name: "Everything is Tuberculosis" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Leave this game?" })).toBeVisible();
+    await expect(page).toHaveURL("/solo");
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(page).toHaveURL("/solo");
+
+    await page.getByRole("link", { name: "Everything is Tuberculosis" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Leave" }).click();
     await expect(page).toHaveURL("/");
+  });
+
+  test("restarting mid-race asks for confirmation before starting over", async ({ page }) => {
+    await page.goto("/solo");
+    await expect(page.getByRole("heading", { level: 1, name: RANDOM_START_TITLE })).toBeVisible();
+
+    await page.getByRole("button", { name: "Restart" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Restart this game?" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: RANDOM_START_TITLE })).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Restart" }).click();
+    await expect(dialog).not.toBeVisible();
   });
 });
 
