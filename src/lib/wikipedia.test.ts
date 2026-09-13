@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupFixtures, insertRedirectCache } from "@/test/db";
+import { cleanupFixtures, clearRedirectCache, insertRedirectCache } from "@/test/db";
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -51,6 +51,10 @@ beforeEach(async () => {
   // Note: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are left as
   // vitest.setup.ts loaded them (pointing at the real local Supabase
   // instance) — unstubAllEnvs only reverts vi.stubEnv calls, not those.
+  // fetchArticle's redirect-cache writes are fire-and-forget in production
+  // code, so a previous test can leak a row after its own cleanup already
+  // ran; clear the table up front so every test starts from known state.
+  await clearRedirectCache();
   wikipedia = await import("./wikipedia");
 });
 
@@ -196,6 +200,17 @@ describe("fetchRandomTitle", () => {
     );
     await expect(wikipedia.fetchRandomTitle()).resolves.toBe("Recovered Article");
   }, 10_000);
+
+  it("falls back to a random redirect_cache entry when the random-summary endpoint errors", async () => {
+    await insertRedirectCache("Consumption (disease)", "Tuberculosis");
+    queueFetch(new Response(null, { status: 404 })); // non-5xx/429, so no retries first
+    await expect(wikipedia.fetchRandomTitle()).resolves.toBe("Tuberculosis");
+  });
+
+  it("still throws WikipediaError when the endpoint errors and the redirect cache is empty", async () => {
+    queueFetch(new Response(null, { status: 404 }));
+    await expect(wikipedia.fetchRandomTitle()).rejects.toThrow(wikipedia.WikipediaError);
+  });
 });
 
 describe("fetchRandomStartArticle", () => {

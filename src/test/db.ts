@@ -220,6 +220,19 @@ export async function insertDailyScore(overrides: {
   return data;
 }
 
+/**
+ * Deletes every row from redirect_cache. Some production code paths write to
+ * this table fire-and-forget (never awaited, since cache writes are a pure
+ * optimization — see wikipedia.ts), so their rows can still land after the
+ * test that triggered them has already run its own cleanup. Tests that need
+ * the table's exact contents (e.g. a random-row fallback) should call this
+ * first rather than trust it's empty.
+ */
+export async function clearRedirectCache(): Promise<void> {
+  const db = getTestServiceClient();
+  await db.from("redirect_cache").delete().not("raw_title", "is", null);
+}
+
 /** Seeds a redirect_cache row for wikipedia.ts's cache-hit tests. */
 export async function insertRedirectCache(
   rawTitle: string,

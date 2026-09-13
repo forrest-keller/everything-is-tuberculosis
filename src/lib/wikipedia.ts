@@ -316,13 +316,19 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export async function fetchRandomTitle(): Promise<string> {
-  const data = await fetchJson<{ title?: string }>(
-    `${WIKI_ORIGIN}/api/rest_v1/page/random/summary`,
-  );
-  if (!data.title) {
-    throw new WikipediaError("Wikipedia did not return a random article title");
+  try {
+    const data = await fetchJson<{ title?: string }>(
+      `${WIKI_ORIGIN}/api/rest_v1/page/random/summary`,
+    );
+    if (!data.title) {
+      throw new WikipediaError("Wikipedia did not return a random article title");
+    }
+    return data.title;
+  } catch (err) {
+    const fallback = await getRandomCachedTitle();
+    if (fallback) return fallback;
+    throw err;
   }
-  return data.title;
 }
 
 /**
@@ -396,6 +402,35 @@ async function invalidateCachedRedirect(rawTitle: string): Promise<void> {
     await supabase.from("redirect_cache").delete().eq("raw_title", rawTitle);
   } catch (err) {
     console.error("[wikipedia] redirect cache invalidation failed:", err);
+  }
+}
+
+/**
+ * Fallback for fetchRandomTitle when the public random-article endpoint
+ * errors (rate limit, outage): pick a title we already know is a real,
+ * canonical article from titles we've previously resolved, so a game can
+ * still start. Uses a row count + random offset rather than `order by
+ * random()` since Supabase's JS client has no way to express the latter.
+ */
+async function getRandomCachedTitle(): Promise<string | null> {
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { count, error: countError } = await supabase
+      .from("redirect_cache")
+      .select("*", { count: "exact", head: true });
+    if (countError || !count) return null;
+
+    const offset = Math.floor(Math.random() * count);
+    const { data, error } = await supabase
+      .from("redirect_cache")
+      .select("canonical_title")
+      .range(offset, offset)
+      .maybeSingle<{ canonical_title: string }>();
+    if (error || !data) return null;
+    return data.canonical_title;
+  } catch (err) {
+    console.error("[wikipedia] redirect cache random read failed:", err);
+    return null;
   }
 }
 
