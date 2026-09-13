@@ -51,39 +51,43 @@ export function GameHeader({
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/75">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <Link
-          href="/"
-          onClick={handleWordmarkClick}
-          className="font-heading text-sm font-semibold whitespace-nowrap"
-        >
-          Everything is Tuberculosis
-        </Link>
-
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          <Badge variant="outline" className="gap-1.5">
-            <MousePointerClick className="size-3.5" />
-            {clicks} {clicks === 1 ? "click" : "clicks"}
-          </Badge>
-          <Badge
-            variant="outline"
-            className={`gap-1.5 tabular-nums ${isRunning ? "" : "opacity-60"}`}
+      <div className="mx-auto flex max-w-4xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex items-center justify-between gap-2 sm:justify-start">
+          <Link
+            href="/"
+            onClick={handleWordmarkClick}
+            className="font-heading text-sm font-semibold whitespace-nowrap"
           >
-            <Timer className="size-3.5" />
-            {formatDuration(elapsedMs)}
-          </Badge>
+            Everything is Tuberculosis
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <span className="hidden max-w-48 truncate text-sm text-muted-foreground md:inline">
+              {currentTitle}
+            </span>
+            <HowToPlayDialog />
+            <ThemeToggle />
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="hidden max-w-48 truncate text-sm text-muted-foreground md:inline">
-            {currentTitle}
-          </span>
-          <HowToPlayDialog />
+        <div className="flex flex-1 flex-wrap items-center justify-between gap-2 sm:justify-end">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="gap-1.5">
+              <MousePointerClick className="size-3.5" />
+              {clicks} {clicks === 1 ? "click" : "clicks"}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={`gap-1.5 tabular-nums ${isRunning ? "" : "opacity-60"}`}
+            >
+              <Timer className="size-3.5" />
+              {formatDuration(elapsedMs)}
+            </Badge>
+          </div>
           <Button variant="outline" size="sm" onClick={handleRestartClick} className="gap-1.5">
             <RotateCcw className="size-3.5" />
             Restart
           </Button>
-          <ThemeToggle />
         </div>
       </div>
 
