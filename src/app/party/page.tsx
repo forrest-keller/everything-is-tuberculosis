@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NameEntryForm } from "@/components/name-entry-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
 import { createPartySession, fetchPartySessionByCode } from "@/lib/party";
 import { getOrCreatePlayerId, getSavedPlayerName, savePlayerName } from "@/lib/player-identity";
 import { AlertTriangle, Loader2, Users } from "lucide-react";
@@ -58,7 +59,8 @@ export default function PartyLandingPage() {
 
   return (
     <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-1">
+        <BuyMeACoffeeButton />
         <ThemeToggle />
       </div>
       <div className="mb-6 flex flex-col items-center gap-2 text-center">

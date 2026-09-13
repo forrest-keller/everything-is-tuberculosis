@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
 import { HowToPlayDialog } from "@/components/how-to-play-dialog";
 import { formatDuration } from "@/lib/format";
 import { Home, MousePointerClick, RotateCcw, Timer } from "lucide-react";
@@ -61,6 +62,7 @@ export function GameHeader({
           >
             <Home className="size-4" />
           </Button>
+          <BuyMeACoffeeButton />
           <ThemeToggle />
         </div>
       </div>

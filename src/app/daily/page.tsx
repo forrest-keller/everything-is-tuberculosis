@@ -12,6 +12,7 @@ import { GameHeader } from "@/components/game-header";
 import { RaceArticleCard } from "@/components/race-article-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
 import { useWikiRace } from "@/hooks/use-wiki-race";
 import {
   type DailyChallenge,
@@ -29,7 +30,8 @@ import { AlertTriangle, CalendarDays, PartyPopper } from "lucide-react";
 function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-1">
+        <BuyMeACoffeeButton />
         <ThemeToggle />
       </div>
       {children}
