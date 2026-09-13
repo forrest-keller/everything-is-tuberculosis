@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupFixtures, getTestServiceClient, insertPartySession } from "@/test/db";
+import {
+  cleanupFixtures,
+  getTestServiceClient,
+  insertPartyPlayer,
+  insertPartySession,
+} from "@/test/db";
 
 const { isRateLimited } = vi.hoisted(() => ({ isRateLimited: vi.fn(() => false) }));
 vi.mock("@/lib/rate-limit", async (importOriginal) => {
@@ -110,5 +115,35 @@ describe("POST /api/party/[code]/join", () => {
     const db = getTestServiceClient();
     const { data } = await db.from("party_players").select("*").eq("id", playerId).single();
     expect(data).toMatchObject({ session_id: session.id, name: "Alice", is_ready: false });
+  });
+
+  it("lets an existing member of this session rejoin (name update)", async () => {
+    const session = await insertPartySession();
+    const player = await insertPartyPlayer(session.id, { name: "Alice" });
+
+    const res = await POST(makeRequest(session.code, { playerId: player.id, name: "Alicia" }), {
+      params: Promise.resolve({ code: session.code }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.player).toMatchObject({ id: player.id, session_id: session.id, name: "Alicia" });
+  });
+
+  it("returns 409 and leaves the row untouched when the playerId already belongs to a different session", async () => {
+    const otherSession = await insertPartySession();
+    const victim = await insertPartyPlayer(otherSession.id, { name: "Victim" });
+    const attackersSession = await insertPartySession();
+
+    const res = await POST(
+      makeRequest(attackersSession.code, { playerId: victim.id, name: "Hijacked" }),
+      { params: Promise.resolve({ code: attackersSession.code }) },
+    );
+
+    expect(res.status).toBe(409);
+
+    const db = getTestServiceClient();
+    const { data } = await db.from("party_players").select("*").eq("id", victim.id).single();
+    expect(data).toMatchObject({ session_id: otherSession.id, name: "Victim" });
   });
 });
