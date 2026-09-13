@@ -15,18 +15,11 @@ import { MousePointerClick, RotateCcw, Timer } from "lucide-react";
 interface GameHeaderProps {
   clicks: number;
   elapsedMs: number;
-  currentTitle: string;
   isRunning: boolean;
   onRestart: () => void;
 }
 
-export function GameHeader({
-  clicks,
-  elapsedMs,
-  currentTitle,
-  isRunning,
-  onRestart,
-}: GameHeaderProps) {
+export function GameHeader({ clicks, elapsedMs, isRunning, onRestart }: GameHeaderProps) {
   const router = useRouter();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
@@ -63,9 +56,6 @@ export function GameHeader({
           </Link>
 
           <div className="flex items-center gap-2">
-            <span className="hidden max-w-48 truncate text-sm text-muted-foreground md:inline">
-              {currentTitle}
-            </span>
             <HowToPlayDialog />
             <BuyMeACoffeeButton />
             <ThemeToggle />
