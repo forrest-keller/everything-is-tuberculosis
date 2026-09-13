@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
-import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
+import { WikipediaError } from "@/lib/wikipedia";
+import { buildNavigationClickResponse, computeNavigationClick } from "@/lib/navigate-attempt";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 import { dbErrorResponse, parseJsonBody, requiredNumber, requiredString } from "@/lib/validation";
 
@@ -45,18 +46,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
   }
 
   try {
-    const article = await fetchArticle(title);
-    const clicks = attempt.clicks + 1;
-    const path = [...(attempt.path as string[]), article.title];
-
-    const update = article.isTarget
-      ? {
-          clicks,
-          path,
-          status: "finished",
-          duration_ms: Date.now() - new Date(attempt.started_at).getTime(),
-        }
-      : { clicks, path };
+    const { article, update } = await computeNavigationClick(title, {
+      clicks: attempt.clicks,
+      path: attempt.path as string[],
+      startedAt: attempt.started_at,
+    });
 
     const { data: updated, error: updateError } = await supabase
       .from("party_round_results")
@@ -73,13 +67,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
     }
 
-    return NextResponse.json({
-      title: article.title,
-      html: article.html,
-      isTarget: article.isTarget,
-      clicks: updated.clicks,
-      elapsedMs: article.isTarget ? updated.duration_ms : undefined,
-    });
+    return NextResponse.json(buildNavigationClickResponse(article, updated));
   } catch (error) {
     console.error("[/api/party/[code]/attempt/navigate] failed:", error);
     const message =
