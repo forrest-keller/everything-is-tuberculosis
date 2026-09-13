@@ -13,6 +13,7 @@ import { GameHeader } from "@/components/game-header";
 import { RaceArticleCard } from "@/components/race-article-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
 import { useWikiRace } from "@/hooks/use-wiki-race";
 import {
   type PartyPlayer,
@@ -47,7 +48,8 @@ function PageShell({ children }: { children: ReactNode }) {
           Everything is Tuberculosis
         </Link>
       </div>
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-1">
+        <BuyMeACoffeeButton />
         <ThemeToggle />
       </div>
       {children}

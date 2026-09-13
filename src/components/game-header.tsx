@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
 import { HowToPlayDialog } from "@/components/how-to-play-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDuration } from "@/lib/format";
@@ -66,6 +67,7 @@ export function GameHeader({
               {currentTitle}
             </span>
             <HowToPlayDialog />
+            <BuyMeACoffeeButton />
             <ThemeToggle />
           </div>
         </div>

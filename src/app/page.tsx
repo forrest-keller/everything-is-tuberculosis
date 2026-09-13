@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
 import { RULES } from "@/lib/rules";
 import { CalendarDays, Info, Shuffle, Users } from "lucide-react";
 
@@ -33,7 +34,8 @@ const MODES = [
 export default function LandingPage() {
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-16">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-1">
+        <BuyMeACoffeeButton />
         <ThemeToggle />
       </div>
       <div className="w-full max-w-3xl">
