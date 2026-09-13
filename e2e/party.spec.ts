@@ -15,7 +15,6 @@ test("party mode: two players race two rounds with real-time sync", async ({ bro
   const guestContext = await browser.newContext();
   const guestPage = await guestContext.newPage();
 
-  // Host creates a session from the landing page.
   await hostPage.goto("/party");
   await hostPage.getByLabel("Your name").fill("Host Player");
   await hostPage.getByRole("button", { name: "Create Session" }).click();
@@ -28,7 +27,6 @@ test("party mode: two players race two rounds with real-time sync", async ({ bro
   await expect(hostPage.getByText("Lobby", { exact: true })).toBeVisible();
   await expect(hostPage.getByText("Host Player")).toBeVisible();
 
-  // Guest joins via the direct room link.
   await guestPage.goto(`/party/${code}`);
   await expect(guestPage.getByText(code)).toBeVisible();
   await guestPage.getByLabel("Your name").fill("Guest Player");

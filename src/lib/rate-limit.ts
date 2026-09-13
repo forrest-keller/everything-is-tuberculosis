@@ -26,7 +26,6 @@ function sweepExpired(now: number): void {
   }
 }
 
-/** Returns true if `key` has exceeded `limit` requests within `windowMs`. */
 export function isRateLimited(key: string, limit: number, windowMs = 60_000): boolean {
   const now = Date.now();
   sweepExpired(now);
