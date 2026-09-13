@@ -137,6 +137,16 @@
  * reliable way to override `prose`'s table/img defaults for Wikipedia's
  * markup below.
  */
+/*
+ * Wikipedia articles routinely contain long unbreakable tokens (citation
+ * URLs used as link text, DOIs, chemical/taxonomic names, table values).
+ * `anywhere` (not `break-word`) also shrinks these tokens' contribution to
+ * table/flex min-content sizing, so a single long value in a wikitable cell
+ * can't force the whole table — or the page — wider than the viewport.
+ */
+.wiki-content {
+  overflow-wrap: anywhere;
+}
 .wiki-content :where(a.wiki-link) {
   color: var(--color-primary);
   font-weight: 600;
