@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
+import { parseJsonBody, requiredNumber } from "@/lib/validation";
+
+const completeRoundSchema = z.object({
+  roundNumber: requiredNumber("Missing roundNumber."),
+});
 
 /**
  * Flips a session from "playing" to "round_results" once every current
@@ -14,12 +20,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
   if (isRateLimited(`party-complete-round:${clientIp(request)}`, 30)) return rateLimitResponse();
 
   const { code } = await params;
-  const body = await request.json().catch(() => null);
-  const roundNumber = typeof body?.roundNumber === "number" ? body.roundNumber : NaN;
-
-  if (Number.isNaN(roundNumber)) {
-    return NextResponse.json({ error: "Missing roundNumber." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, completeRoundSchema);
+  if (parsed.error) return parsed.error;
+  const { roundNumber } = parsed.data;
 
   const supabase = getSupabaseServiceClient();
   const { data: session, error: sessionError } = await supabase
