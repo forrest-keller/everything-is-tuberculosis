@@ -17,6 +17,13 @@ afterEach(() => {
   cleanup();
 });
 
+// jsdom doesn't implement scrollTo (it logs a "Not implemented" console
+// error) — stub it so components that scroll the page on navigation don't
+// spam test output.
+if (typeof window !== "undefined") {
+  window.scrollTo = () => {};
+}
+
 // jsdom doesn't implement matchMedia — next-themes (ThemeProvider/useTheme)
 // calls it unconditionally on mount to detect the OS color scheme.
 if (typeof window !== "undefined" && !window.matchMedia) {
