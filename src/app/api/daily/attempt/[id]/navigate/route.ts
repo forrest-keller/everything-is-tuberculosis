@@ -6,6 +6,11 @@ import { buildNavigationClickResponse, computeNavigationClick } from "@/lib/navi
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 import { dbErrorResponse, parseJsonBody, requiredString } from "@/lib/validation";
 
+// Generous enough that no real player will ever hit it (Wikipedia's link-distance
+// to any article is small), but bounds worst-case storage and upstream API cost
+// for an attempt an attacker or script keeps alive indefinitely.
+const MAX_CLICKS_PER_ATTEMPT = 300;
+
 const MISSING_FIELDS_MSG = "Missing playerId or title.";
 const dailyNavigateSchema = z.object({
   playerId: requiredString(MISSING_FIELDS_MSG),
@@ -34,6 +39,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   if (attempt.status !== "in_progress") {
     return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
+  }
+  if (attempt.clicks >= MAX_CLICKS_PER_ATTEMPT) {
+    return NextResponse.json(
+      { error: "This attempt has reached the maximum number of moves." },
+      { status: 409 },
+    );
   }
 
   try {
