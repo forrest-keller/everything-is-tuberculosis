@@ -1,7 +1,6 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NameEntryForm } from "@/components/name-entry-form";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
+import { PageShell } from "@/components/page-shell";
 import { createPartySession, fetchPartySessionByCode } from "@/lib/party";
 import { getOrCreatePlayerId, getSavedPlayerName, savePlayerName } from "@/lib/player-identity";
 import { AlertTriangle, Loader2, Users } from "lucide-react";
@@ -59,16 +57,7 @@ export default function PartyLandingPage() {
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <div className="absolute top-4 left-4">
-        <Link href="/" className="font-heading text-sm font-semibold whitespace-nowrap">
-          Everything is Tuberculosis
-        </Link>
-      </div>
-      <div className="absolute top-4 right-4 flex items-center gap-1">
-        <BuyMeACoffeeButton />
-        <ThemeToggle />
-      </div>
+    <PageShell>
       <div className="mb-6 flex flex-col items-center gap-2 text-center">
         <Users className="size-8 text-primary" />
         <h1 className="font-heading text-2xl font-semibold">Play with Friends</h1>
@@ -126,6 +115,6 @@ export default function PartyLandingPage() {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

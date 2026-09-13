@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +9,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NameEntryForm } from "@/components/name-entry-form";
 import { GameHeader } from "@/components/game-header";
+import { PageShell } from "@/components/page-shell";
 import { RaceArticleCard } from "@/components/race-article-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { BuyMeACoffeeButton } from "@/components/buy-me-a-coffee-button";
 import { useWikiRace } from "@/hooks/use-wiki-race";
 import {
   type DailyChallenge,
@@ -24,25 +23,6 @@ import {
 } from "@/lib/daily";
 import { getOrCreatePlayerId, getSavedPlayerName, savePlayerName } from "@/lib/player-identity";
 import { AlertTriangle, CalendarDays, PartyPopper } from "lucide-react";
-
-/** Shared shell for every pre-/post-game state on this page (not the active
- * race view, which has its own GameHeader). */
-function PageShell({ children }: { children: ReactNode }) {
-  return (
-    <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
-      <div className="absolute top-4 left-4">
-        <Link href="/" className="font-heading text-sm font-semibold whitespace-nowrap">
-          Everything is Tuberculosis
-        </Link>
-      </div>
-      <div className="absolute top-4 right-4 flex items-center gap-1">
-        <BuyMeACoffeeButton />
-        <ThemeToggle />
-      </div>
-      {children}
-    </div>
-  );
-}
 
 export default function DailyPage() {
   const race = useWikiRace();

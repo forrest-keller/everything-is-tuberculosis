@@ -14,6 +14,7 @@ const MODES = [
     title: "Solo",
     description: "Jump straight in from a random article.",
     cta: "Play Solo",
+    accent: "border-t-primary",
   },
   {
     href: "/daily",
@@ -21,6 +22,7 @@ const MODES = [
     title: "Daily Challenge",
     description: "Everyone gets the same start article each day. Race for the leaderboard.",
     cta: "Play Today's Challenge",
+    accent: "border-t-secondary",
   },
   {
     href: "/party",
@@ -28,6 +30,7 @@ const MODES = [
     title: "Play with Friends",
     description: "Create or join a session — everyone starts the same page each round.",
     cta: "Play with Friends",
+    accent: "border-t-destructive",
   },
 ];
 
@@ -43,7 +46,7 @@ export default function LandingPage() {
           <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
             Everything is <span className="text-primary">Tuberculosis</span>
           </h1>
-          <p className="max-w-lg text-balance text-muted-foreground">
+          <p className="max-w-lg text-balance font-serif text-muted-foreground">
             No matter where Wikipedia drops you, every article is secretly just a few clicks away
             from Tuberculosis. Prove it — as fast as you can, in as few clicks as possible.
           </p>
@@ -63,8 +66,8 @@ export default function LandingPage() {
         </Alert>
 
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          {MODES.map(({ href, icon: Icon, title, description, cta }) => (
-            <Card key={href} className="flex flex-col">
+          {MODES.map(({ href, icon: Icon, title, description, cta, accent }) => (
+            <Card key={href} className={`flex flex-col border-t-4 ${accent}`}>
               <CardHeader>
                 <Icon className="mb-1 size-6 text-primary" />
                 <CardTitle>{title}</CardTitle>
