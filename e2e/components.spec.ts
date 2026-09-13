@@ -59,8 +59,12 @@ test.describe("GameHeader", () => {
     await page.getByRole("button", { name: "Restart" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Restart this game?" })).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).not.toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: RANDOM_START_TITLE })).toBeVisible();
 
+    await page.getByRole("button", { name: "Restart" }).click();
     await dialog.getByRole("button", { name: "Restart" }).click();
     await expect(dialog).not.toBeVisible();
   });

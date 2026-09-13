@@ -44,6 +44,7 @@ test("solo mode: restart loads a fresh attempt", async ({ page }) => {
   await expect(page.getByText("1 click")).toBeVisible();
 
   await page.getByRole("button", { name: "Restart" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Restart" }).click();
 
   await expect(page.getByRole("heading", { level: 1, name: RANDOM_START_TITLE })).toBeVisible();
   await expect(page.getByText("0 clicks")).toBeVisible();
