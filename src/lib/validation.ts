@@ -60,3 +60,17 @@ function toParsedBody<T>(result: ReturnType<ZodType<T>["safeParse"]>): ParsedBod
   }
   return { data: result.data };
 }
+
+/**
+ * Logs a raw Postgres/Supabase query error server-side and returns a generic
+ * client-safe message instead — the raw `.message` can include internal
+ * schema or constraint details that shouldn't leave the server.
+ */
+export function dbErrorResponse(
+  error: { message: string },
+  status: number,
+  context: string,
+): NextResponse {
+  console.error(`[${context}] database error:`, error.message);
+  return NextResponse.json({ error: "Something went wrong. Please try again." }, { status });
+}

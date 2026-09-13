@@ -4,7 +4,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { WikipediaError } from "@/lib/wikipedia";
 import { buildNavigationClickResponse, computeNavigationClick } from "@/lib/navigate-attempt";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString, requiredUuid } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredString, requiredUuid } from "@/lib/validation";
 
 const MISSING_FIELDS_MSG = "Missing playerId or title.";
 const dailyNavigateSchema = z.object({
@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq("id", id)
     .maybeSingle();
 
-  if (loadError) return NextResponse.json({ error: loadError.message }, { status: 500 });
+  if (loadError) return dbErrorResponse(loadError, 500, "/api/daily/attempt/[id]/navigate");
   if (!attempt) return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
   if (attempt.player_id !== playerId) {
     return NextResponse.json({ error: "This attempt doesn't belong to you." }, { status: 403 });
@@ -51,7 +51,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .select("clicks, duration_ms")
       .maybeSingle();
 
-    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    // id already succeeded in an identical lookup above, so this update has
+    // no remaining trigger short of a genuine infra-level Postgres failure.
+    /* v8 ignore next */
+    if (updateError) return dbErrorResponse(updateError, 500, "/api/daily/attempt/[id]/navigate");
     if (!updated) {
       return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
     }

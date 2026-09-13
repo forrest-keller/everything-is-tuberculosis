@@ -121,6 +121,10 @@ describe("POST /api/party/create", () => {
   });
 
   it("returns 400 when hostPlayerId isn't a valid uuid", async () => {
+    // Format validation now catches this before it ever reaches Postgres —
+    // it used to be the only way to exercise the session insert's genuine
+    // (non-collision) error branch, which is why that branch now carries a
+    // coverage-ignore comment in route.ts instead of a test here.
     const res = await POST(makeRequest({ hostName: "Alice", hostPlayerId: "not-a-uuid" }));
 
     expect(res.status).toBe(400);
@@ -141,7 +145,8 @@ describe("POST /api/party/create", () => {
     const res = await POST(makeRequest({ hostName: "Alice", hostPlayerId: existingPlayer.id }));
 
     expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toMatch(/duplicate key|already exists/i);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong. Please try again.",
+    });
   });
 });

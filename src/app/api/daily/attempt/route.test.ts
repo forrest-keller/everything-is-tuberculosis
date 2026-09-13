@@ -85,6 +85,22 @@ describe("POST /api/daily/attempt", () => {
     expect(body.error).toMatch(/playerId/i);
   });
 
+  it("returns 400 when the insert fails for real (player name too long)", async () => {
+    // playerName has no upstream max-length check (unlike party/join's name
+    // field), so daily_scores' `char_length(player_name) between 1 and 32`
+    // check constraint is still reachable through valid public input — a
+    // genuine Postgres error, not a mocked one. The route hides the raw
+    // error text and returns its generic fallback.
+    await insertDailyChallenge({ start_title: "Bacteria" });
+
+    const res = await POST(
+      makeRequest({ playerId: crypto.randomUUID(), playerName: "x".repeat(33) }),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Failed to start today's attempt." });
+  });
+
   it("returns 502 when the article fetch fails with a WikipediaError", async () => {
     await insertDailyChallenge({ start_title: "Bacteria" });
     fetchArticle.mockRejectedValue(new WikipediaError("Wikipedia is down"));
@@ -105,15 +121,15 @@ describe("POST /api/daily/attempt", () => {
     await expect(res.json()).resolves.toEqual({ error: "Failed to start today's attempt." });
   });
 
-  it("returns 500 with the real error message on an unexpected failure", async () => {
+  it("returns 500 with getOrCreateTodayChallenge's generic message on an unexpected failure", async () => {
     // No pre-seeded challenge, and a null title violates daily_challenges'
-    // real NOT NULL constraint — getOrCreateTodayChallenge throws for real.
+    // real NOT NULL constraint — getOrCreateTodayChallenge throws for real,
+    // with a generic message rather than the raw Postgres error.
     fetchRandomStartArticle.mockResolvedValue({ title: null, html: "<p/>", isTarget: false });
 
     const res = await POST(makeRequest({ playerId: crypto.randomUUID(), playerName: "Alice" }));
 
     expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toMatch(/null value|not-null/i);
+    await expect(res.json()).resolves.toEqual({ error: "Failed to create today's challenge." });
   });
 });

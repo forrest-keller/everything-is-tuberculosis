@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredTrimmedString, requiredUuid } from "@/lib/validation";
+import {
+  dbErrorResponse,
+  parseJsonBody,
+  requiredTrimmedString,
+  requiredUuid,
+} from "@/lib/validation";
 
 const joinSchema = z.object({
   playerId: requiredUuid("Missing player id."),
@@ -30,7 +35,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/join");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   // Update-then-insert rather than upsert-by-id: an upsert would let a
@@ -49,7 +58,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .select()
     .maybeSingle();
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
+  // playerId is validated as a UUID up front and name is length-capped to
+  // match party_players' own check constraint, so this update has no
+  // remaining public-input trigger short of a genuine infra-level Postgres
+  // failure.
+  /* v8 ignore next */
+  if (updateError) return dbErrorResponse(updateError, 400, "/api/party/[code]/join");
   if (updated) return NextResponse.json({ player: updated });
 
   const { data: inserted, error: insertError } = await supabase
@@ -65,7 +79,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
         { status: 409 },
       );
     }
-    return NextResponse.json({ error: insertError.message }, { status: 400 });
+    // playerId is validated as a UUID up front and name is length-capped to
+    // match party_players' own check constraint; the one other realistic
+    // failure (id already in use) is a 23505, handled above. No remaining
+    // public-input trigger short of a genuine infra-level Postgres failure.
+    /* v8 ignore next */
+    return dbErrorResponse(insertError, 400, "/api/party/[code]/join");
   }
 
   return NextResponse.json({ player: inserted });

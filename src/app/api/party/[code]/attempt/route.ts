@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredUuid } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredUuid } from "@/lib/validation";
 
 const attemptSchema = z.object({
   playerId: requiredUuid("Missing playerId."),
@@ -24,7 +24,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/attempt");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
   if (session.status !== "playing" || !session.current_start_title) {
     return NextResponse.json({ error: "This round isn't active." }, { status: 409 });
@@ -38,7 +42,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("player_id", playerId)
     .maybeSingle();
 
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  // session.id and session.round_number always come from a row we just
+  // read, and playerId is now validated as a UUID up front, so this lookup
+  // has no remaining public-input trigger short of a genuine infra-level
+  // Postgres failure.
+  /* v8 ignore next */
+  if (existingError) return dbErrorResponse(existingError, 500, "/api/party/[code]/attempt");
   if (existing?.status === "finished") {
     return NextResponse.json({ error: "You've already finished this round." }, { status: 409 });
   }
@@ -60,7 +69,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       { onConflict: "session_id,round_number,player_id" },
     );
 
-    if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 400 });
+    if (upsertError) return dbErrorResponse(upsertError, 400, "/api/party/[code]/attempt");
 
     return NextResponse.json({
       roundNumber: session.round_number,

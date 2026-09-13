@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredBoolean, requiredUuid } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredBoolean, requiredUuid } from "@/lib/validation";
 
 const MISSING_FIELDS_MSG = "Missing playerId or isReady.";
 const readySchema = z.object({
@@ -28,7 +28,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/ready");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   const { error: updateError } = await supabase
@@ -37,7 +41,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("id", playerId)
     .eq("session_id", session.id);
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+  // isReady is boolean-validated and playerId/session.id are always
+  // valid-format UUIDs by this point, so this update has no remaining
+  // public-input trigger short of a genuine infra-level Postgres failure.
+  /* v8 ignore next */
+  if (updateError) return dbErrorResponse(updateError, 500, "/api/party/[code]/ready");
 
   return NextResponse.json({ ok: true });
 }

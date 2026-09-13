@@ -89,6 +89,24 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
     expect(res.status).toBe(404);
   });
 
+  it("returns 500 when the lookup fails for real (roundNumber out of int4 range)", async () => {
+    // roundNumber has no format/range check upstream (unlike playerId), so
+    // a value outside Postgres' `integer` range is a genuine error, not a
+    // mocked one — the route hides the raw error text and returns its
+    // generic fallback.
+    const session = await insertPartySession({ status: "playing" });
+    const res = await call(session.code, {
+      playerId: crypto.randomUUID(),
+      roundNumber: 99999999999,
+      title: "X",
+    });
+
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong. Please try again.",
+    });
+  });
+
   it("returns 409 when the attempt has already finished", async () => {
     const { session, player, roundNumber } = await setUpInProgressAttempt();
     await getTestServiceClient()

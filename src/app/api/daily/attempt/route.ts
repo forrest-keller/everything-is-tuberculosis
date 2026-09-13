@@ -37,10 +37,8 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !attempt) {
-      return NextResponse.json(
-        { error: error?.message ?? "Failed to start today's attempt." },
-        { status: 400 },
-      );
+      if (error) console.error("[/api/daily/attempt] database error:", error.message);
+      return NextResponse.json({ error: "Failed to start today's attempt." }, { status: 400 });
     }
 
     return NextResponse.json({

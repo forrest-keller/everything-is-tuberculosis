@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredNumber } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredNumber } from "@/lib/validation";
 
 const completeRoundSchema = z.object({
   roundNumber: requiredNumber("Missing roundNumber."),
@@ -31,7 +31,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/complete-round");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   const [{ count: playerCount }, { count: resultCount }] = await Promise.all([

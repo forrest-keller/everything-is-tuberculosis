@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredUuid } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredUuid } from "@/lib/validation";
 
 const advanceSchema = z.object({
   playerId: requiredUuid("Missing player id."),
@@ -24,7 +24,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/advance");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   if (session.status === "lobby") {
@@ -36,7 +40,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       .from("party_players")
       .select("is_ready")
       .eq("session_id", session.id);
-    if (playersError) return NextResponse.json({ error: playersError.message }, { status: 500 });
+    // session.id always comes from a row we just read — no public input can
+    // make this lookup itself fail.
+    /* v8 ignore next */
+    if (playersError) return dbErrorResponse(playersError, 500, "/api/party/[code]/advance");
     if (!players?.length || !players.every((p) => p.is_ready)) {
       return NextResponse.json({ error: "Not everyone is ready yet." }, { status: 409 });
     }
@@ -72,7 +79,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .select()
     .maybeSingle();
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+  // Every value here is either server-generated (startTitle, round_number)
+  // or comes from a row we just read (session.id/status) — no public input
+  // can make this update itself fail.
+  /* v8 ignore next */
+  if (updateError) return dbErrorResponse(updateError, 500, "/api/party/[code]/advance");
   if (!updated) {
     return NextResponse.json({ error: "Session already advanced." }, { status: 409 });
   }

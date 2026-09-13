@@ -4,7 +4,13 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { WikipediaError } from "@/lib/wikipedia";
 import { buildNavigationClickResponse, computeNavigationClick } from "@/lib/navigate-attempt";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredNumber, requiredString, requiredUuid } from "@/lib/validation";
+import {
+  dbErrorResponse,
+  parseJsonBody,
+  requiredNumber,
+  requiredString,
+  requiredUuid,
+} from "@/lib/validation";
 
 const MISSING_FIELDS_MSG = "Missing playerId, roundNumber, or title.";
 const navigateSchema = z.object({
@@ -28,7 +34,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/attempt/navigate");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   const { data: attempt, error: loadError } = await supabase
@@ -39,7 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("player_id", playerId)
     .maybeSingle();
 
-  if (loadError) return NextResponse.json({ error: loadError.message }, { status: 500 });
+  if (loadError) return dbErrorResponse(loadError, 500, "/api/party/[code]/attempt/navigate");
   if (!attempt) return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
   if (attempt.status !== "in_progress") {
     return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
@@ -62,7 +72,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       .select("clicks, duration_ms")
       .maybeSingle();
 
-    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    // session.id, roundNumber, and playerId already succeeded in an
+    // identical lookup above, so this update has no remaining trigger short
+    // of a genuine infra-level Postgres failure.
+    /* v8 ignore next */
+    if (updateError) return dbErrorResponse(updateError, 500, "/api/party/[code]/attempt/navigate");
     if (!updated) {
       return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
     }
