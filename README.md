@@ -65,6 +65,61 @@ Next.js (App Router) · React · TypeScript · Tailwind CSS · Supabase
 
    Open [http://localhost:3000](http://localhost:3000) to play.
 
+## Testing
+
+Tests run against a real local Supabase instance (Postgres + PostgREST +
+Realtime) rather than a mocked client, so assertions exercise the same RLS
+policies, foreign keys, and constraints production traffic does. This
+requires [Docker](https://www.docker.com/products/docker-desktop/) to be
+installed and running.
+
+```bash
+npm test              # everything: Vitest, then pgTAP, then the Playwright E2E suite
+npm run test:unit     # just the Vitest suite (integration tests against Supabase, no browser)
+npm run test:watch    # Vitest in watch mode
+npm run test:coverage # Vitest once, with a coverage report written to coverage/
+```
+
+The first run pulls Supabase's Docker images, which takes a minute; after
+that, `vitest.global-setup.ts` reuses the already-running stack. If you'd
+rather manage it yourself:
+
+```bash
+npm run supabase:start  # boots the local stack (idempotent)
+npm run supabase:stop   # tears it down
+```
+
+There's also a [pgTAP](https://pgtap.org/) suite
+([supabase/tests/database](supabase/tests/database)) that checks the
+database's Row Level Security policies directly — the one thing the
+service-role-backed Vitest tests above can't cover, since the service role
+bypasses RLS entirely. Run it (with the local stack already up) via:
+
+```bash
+npm run test:db
+```
+
+### End-to-end tests
+
+[Playwright](https://playwright.dev) drives a real Chromium browser against
+`next dev`, the same real local Supabase instance, and a small fixture
+"Wikipedia" server ([e2e/fixture-wiki-server.mjs](e2e/fixture-wiki-server.mjs))
+that serves a fixed, three-article link graph — since the real Wikipedia
+hands out a genuinely random start article, a browser test can't reliably
+click its way to Tuberculosis otherwise. `WIKI_ORIGIN_OVERRIDE` /
+`WME_AUTH_ORIGIN_OVERRIDE` / `WME_API_ORIGIN_OVERRIDE` (see
+[playwright.config.ts](playwright.config.ts)) point the server at it instead
+of the real Wikipedia/Wikimedia Enterprise APIs.
+
+```bash
+npm run test:e2e     # installs browsers once via `npx playwright install chromium`
+npm run test:e2e:ui  # same, with Playwright's interactive UI mode
+```
+
+Covers full solo/daily/party journeys (party mode drives two browser
+contexts to exercise real-time sync between two "players") plus a few
+component-focused checks (HowToPlayDialog, GameHeader, ThemeToggle).
+
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)

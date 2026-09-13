@@ -2,15 +2,20 @@ import * as cheerio from "cheerio";
 import sanitizeHtml from "sanitize-html";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 
-const WIKI_ORIGIN = "https://en.wikipedia.org";
+// Overridable so Playwright's E2E suite can point this module at a small
+// local fixture server instead of the real Wikipedia/Wikimedia Enterprise
+// APIs (see e2e/fixture-wiki-server.mjs) — solo/daily/party mode all start
+// from a genuinely random real article otherwise, which a browser test can't
+// reliably click through to "Tuberculosis". Never set outside of E2E runs.
+const WIKI_ORIGIN = process.env.WIKI_ORIGIN_OVERRIDE || "https://en.wikipedia.org";
 const TARGET_TITLE = "Tuberculosis";
 
 // Wikimedia Enterprise API: https://enterprise.wikimedia.com/docs/
 // Used for article content. It has no random-article or redirect-lookup
 // endpoint, so those two operations still go through the free public APIs
 // above; only per-title content fetches move to Enterprise.
-const WME_AUTH_ORIGIN = "https://auth.enterprise.wikimedia.com";
-const WME_API_ORIGIN = "https://api.enterprise.wikimedia.com";
+const WME_AUTH_ORIGIN = process.env.WME_AUTH_ORIGIN_OVERRIDE || "https://auth.enterprise.wikimedia.com";
+const WME_API_ORIGIN = process.env.WME_API_ORIGIN_OVERRIDE || "https://api.enterprise.wikimedia.com";
 const WME_PROJECT = "enwiki";
 
 /**

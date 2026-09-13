@@ -3,13 +3,16 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === "development";
 
 /** Adds the Supabase project's own origin (REST + Realtime websocket) to
- * connect-src, since the browser talks to it directly for reads/realtime. */
+ * connect-src, since the browser talks to it directly for reads/realtime.
+ * Derives the scheme from the configured URL rather than assuming https —
+ * the local Supabase stack (used by tests) is plain http/ws. */
 function supabaseConnectOrigins(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url) return "";
   try {
-    const { host } = new URL(url);
-    return `https://${host} wss://${host}`;
+    const { host, protocol } = new URL(url);
+    const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${host} ${wsProtocol}//${host}`;
   } catch {
     return "";
   }
@@ -38,6 +41,10 @@ function cspHeaderValue(): string {
 }
 
 const nextConfig: NextConfig = {
+  // The E2E suite drives the dev server via 127.0.0.1 rather than localhost
+  // (see playwright.config.ts) — without this, Next.js blocks cross-origin
+  // dev resource requests (HMR, etc.) from that host.
+  allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [
       {
