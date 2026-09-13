@@ -10,7 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "npm run test:unit && npm run test:db && npm run test:e2e",
     "test:unit": "vitest run",
     "test:watch": "vitest",
