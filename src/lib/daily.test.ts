@@ -53,16 +53,14 @@ describe("fetchTodayChallenge", () => {
 
 describe("createDailyAttempt", () => {
   it("posts the player info and returns the attempt", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({
-          attemptId: "attempt-1",
-          title: "Bacteria",
-          html: "<p>hi</p>",
-          isTarget: false,
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        attemptId: "attempt-1",
+        title: "Bacteria",
+        html: "<p>hi</p>",
+        isTarget: false,
+      }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const attempt = await createDailyAttempt({ playerId: "p1", playerName: "Alice" });
