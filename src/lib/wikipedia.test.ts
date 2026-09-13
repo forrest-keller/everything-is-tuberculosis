@@ -87,7 +87,6 @@ describe("fetchArticle", () => {
     expect(article.html).not.toContain("<script");
     expect(article.html).not.toContain("alert(");
 
-    // Ordinary wiki link stays clickable.
     expect(article.html).toMatch(/<a[^>]*href="\/wiki\/Bacteria"[^>]*>Bacteria<\/a>/);
     expect(article.html).toMatch(
       /<a[^>]*class="wiki-link"[^>]*data-title="Bacteria"[^>]*>Bacteria<\/a>/,
@@ -97,23 +96,18 @@ describe("fetchArticle", () => {
     expect(article.html).toMatch(/data-title="Mission: Impossible"/);
     expect(article.html).toMatch(/<a[^>]*class="wiki-link"[^>]*data-title="Mission: Impossible"/);
 
-    // Non-wiki (external) links are disabled and stripped of href.
     expect(article.html).toMatch(/<a[^>]*class="wiki-link-disabled"[^>]*>external<\/a>/);
 
-    // In-page anchors are left completely alone.
     expect(article.html).toContain('<a href="#cite_note-1">[1]</a>');
 
     // Redlinks are disabled even though they're real mw:WikiLink anchors
     // (the pre-existing "new" class is preserved alongside the disabled one).
     expect(article.html).toMatch(/<a[^>]*class="new wiki-link-disabled"[^>]*>Nonexistent<\/a>/);
 
-    // Namespaced (non-article) targets are disabled.
     expect(article.html).toMatch(/<a[^>]*class="wiki-link-disabled"[^>]*>Category link<\/a>/);
 
-    // Tables get a scroll wrapper.
     expect(article.html).toContain('<div class="wiki-table-scroll">');
 
-    // Protocol-relative image URLs are fixed, and layout-affecting attrs stripped.
     expect(article.html).toContain('src="https://upload.wikimedia.org/thumb.png"');
     expect(article.html).toContain('loading="lazy"');
     expect(article.html).not.toContain("style=");
