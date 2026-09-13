@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
+import { parseJsonBody, requiredString, requiredTrimmedString } from "@/lib/validation";
+
+const joinSchema = z.object({
+  playerId: requiredString("Missing player id."),
+  name: requiredTrimmedString("Enter a name between 1 and 32 characters.", 32),
+});
 
 // Writes to party_players go through this service-role route rather than
 // directly from the browser (see the RLS policies in
@@ -12,19 +19,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
   if (isRateLimited(`party-join:${clientIp(request)}`, 20)) return rateLimitResponse();
 
   const { code } = await params;
-  const body = await request.json().catch(() => null);
-  const playerId = typeof body?.playerId === "string" ? body.playerId : "";
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
-
-  if (!playerId) {
-    return NextResponse.json({ error: "Missing player id." }, { status: 400 });
-  }
-  if (!name || name.length > 32) {
-    return NextResponse.json(
-      { error: "Enter a name between 1 and 32 characters." },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseJsonBody(request, joinSchema);
+  if (parsed.error) return parsed.error;
+  const { playerId, name } = parsed.data;
 
   const supabase = getSupabaseServiceClient();
   const { data: session, error: sessionError } = await supabase

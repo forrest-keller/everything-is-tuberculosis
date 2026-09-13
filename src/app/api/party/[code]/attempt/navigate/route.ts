@@ -1,23 +1,24 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
+import { parseJsonBody, requiredNumber, requiredString } from "@/lib/validation";
+
+const MISSING_FIELDS_MSG = "Missing playerId, roundNumber, or title.";
+const navigateSchema = z.object({
+  playerId: requiredString(MISSING_FIELDS_MSG),
+  roundNumber: requiredNumber(MISSING_FIELDS_MSG),
+  title: requiredString(MISSING_FIELDS_MSG),
+});
 
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-navigate:${clientIp(request)}`, 60)) return rateLimitResponse();
 
   const { code } = await params;
-  const body = await request.json().catch(() => null);
-  const playerId = typeof body?.playerId === "string" ? body.playerId : "";
-  const roundNumber = typeof body?.roundNumber === "number" ? body.roundNumber : NaN;
-  const title = typeof body?.title === "string" ? body.title : "";
-
-  if (!playerId || !title || Number.isNaN(roundNumber)) {
-    return NextResponse.json(
-      { error: "Missing playerId, roundNumber, or title." },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseJsonBody(request, navigateSchema);
+  if (parsed.error) return parsed.error;
+  const { playerId, roundNumber, title } = parsed.data;
 
   const supabase = getSupabaseServiceClient();
   const { data: session, error: sessionError } = await supabase

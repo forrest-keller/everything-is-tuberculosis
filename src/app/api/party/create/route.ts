@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
+import { parseJsonBody, requiredString, requiredTrimmedString } from "@/lib/validation";
 
 // Excludes visually-ambiguous characters (0/O, 1/I/L).
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+const createPartySchema = z.object({
+  hostName: requiredTrimmedString("Enter a name between 1 and 32 characters.", 32),
+  hostPlayerId: requiredString("Missing player id."),
+});
 
 function generateCode(length = 5): string {
   let code = "";
@@ -16,19 +23,9 @@ function generateCode(length = 5): string {
 export async function POST(request: Request) {
   if (isRateLimited(`party-create:${clientIp(request)}`, 10)) return rateLimitResponse();
 
-  const body = await request.json().catch(() => null);
-  const hostName = typeof body?.hostName === "string" ? body.hostName.trim() : "";
-  const hostPlayerId = typeof body?.hostPlayerId === "string" ? body.hostPlayerId : "";
-
-  if (!hostName || hostName.length > 32) {
-    return NextResponse.json(
-      { error: "Enter a name between 1 and 32 characters." },
-      { status: 400 },
-    );
-  }
-  if (!hostPlayerId) {
-    return NextResponse.json({ error: "Missing player id." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, createPartySchema);
+  if (parsed.error) return parsed.error;
+  const { hostName, hostPlayerId } = parsed.data;
 
   const supabase = getSupabaseServiceClient();
 

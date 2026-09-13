@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getOrCreateTodayChallenge } from "@/lib/daily-server";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
+import { parseJsonBody, requiredString } from "@/lib/validation";
+
+const MISSING_FIELDS_MSG = "Missing playerId or playerName.";
+const dailyAttemptSchema = z.object({
+  playerId: requiredString(MISSING_FIELDS_MSG),
+  playerName: requiredString(MISSING_FIELDS_MSG),
+});
 
 export async function POST(request: Request) {
   if (isRateLimited(`daily-attempt:${clientIp(request)}`, 10)) return rateLimitResponse();
 
-  const body = await request.json().catch(() => null);
-  const playerId = typeof body?.playerId === "string" ? body.playerId : "";
-  const playerName = typeof body?.playerName === "string" ? body.playerName : "";
-
-  if (!playerId || !playerName) {
-    return NextResponse.json({ error: "Missing playerId or playerName." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, dailyAttemptSchema);
+  if (parsed.error) return parsed.error;
+  const { playerId, playerName } = parsed.data;
 
   try {
     const challenge = await getOrCreateTodayChallenge();

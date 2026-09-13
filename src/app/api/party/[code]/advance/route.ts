@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
+import { parseJsonBody, requiredString } from "@/lib/validation";
+
+const advanceSchema = z.object({
+  playerId: requiredString("Missing player id."),
+});
 
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-advance:${clientIp(request)}`, 10)) return rateLimitResponse();
 
   const { code } = await params;
-  const body = await request.json().catch(() => null);
-  const playerId = typeof body?.playerId === "string" ? body.playerId : "";
+  const parsed = await parseJsonBody(request, advanceSchema);
+  if (parsed.error) return parsed.error;
+  const { playerId } = parsed.data;
 
   const supabase = getSupabaseServiceClient();
   const { data: session, error: sessionError } = await supabase

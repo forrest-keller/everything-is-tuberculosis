@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
+import { parseJsonBody, requiredBoolean, requiredString } from "@/lib/validation";
+
+const MISSING_FIELDS_MSG = "Missing playerId or isReady.";
+const readySchema = z.object({
+  playerId: requiredString(MISSING_FIELDS_MSG),
+  isReady: requiredBoolean(MISSING_FIELDS_MSG),
+});
 
 // Writes to party_players go through this service-role route rather than
 // directly from the browser (see the RLS policies in
@@ -9,13 +17,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
   if (isRateLimited(`party-ready:${clientIp(request)}`, 20)) return rateLimitResponse();
 
   const { code } = await params;
-  const body = await request.json().catch(() => null);
-  const playerId = typeof body?.playerId === "string" ? body.playerId : "";
-  const isReady = typeof body?.isReady === "boolean" ? body.isReady : null;
-
-  if (!playerId || isReady === null) {
-    return NextResponse.json({ error: "Missing playerId or isReady." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, readySchema);
+  if (parsed.error) return parsed.error;
+  const { playerId, isReady } = parsed.data;
 
   const supabase = getSupabaseServiceClient();
   const { data: session, error: sessionError } = await supabase
