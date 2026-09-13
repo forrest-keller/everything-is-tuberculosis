@@ -1,4 +1,4 @@
-export const SITE_URL = "https://everything-is-tuberculosis.forrestkeller.com";
+export const SITE_URL = "https://eitb.forrestkeller.com";
 
 export const SITE_NAME = "Everything is Tuberculosis";
 
