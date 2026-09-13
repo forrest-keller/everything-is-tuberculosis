@@ -289,6 +289,7 @@ describe("PartyRoom", () => {
       title: "Tuberculosis",
       html: "<p>done</p>",
       isTarget: true,
+      clicks: 1,
     });
     mocked.completeRoundIfDone.mockResolvedValue(undefined);
 
