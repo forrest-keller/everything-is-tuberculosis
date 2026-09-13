@@ -162,4 +162,15 @@ describe("POST /api/daily/attempt/[id]/navigate", () => {
     expect(res.status).toBe(502);
     await expect(res.json()).resolves.toEqual({ error: "Could not load it" });
   });
+
+  it("returns a default 502 message when something other than a WikipediaError is thrown", async () => {
+    fetchArticle.mockRejectedValue("not an Error instance");
+    const { attempt, playerId } = await setUpInProgressAttempt();
+
+    const res = await call(attempt.id, { playerId, title: "X" });
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong talking to Wikipedia.",
+    });
+  });
 });

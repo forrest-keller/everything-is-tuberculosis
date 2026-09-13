@@ -97,6 +97,16 @@ describe("POST /api/daily/attempt", () => {
     await expect(res.json()).resolves.toEqual({ error: "Wikipedia is down" });
   });
 
+  it("returns a default 500 message when something other than an Error is thrown", async () => {
+    await insertDailyChallenge({ start_title: "Bacteria" });
+    fetchArticle.mockRejectedValue("not an Error instance");
+
+    const res = await POST(makeRequest({ playerId: crypto.randomUUID(), playerName: "Alice" }));
+
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toEqual({ error: "Failed to start today's attempt." });
+  });
+
   it("returns 500 with the real error message on an unexpected failure", async () => {
     // No pre-seeded challenge, and a null title violates daily_challenges'
     // real NOT NULL constraint — getOrCreateTodayChallenge throws for real.

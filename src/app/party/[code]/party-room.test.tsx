@@ -348,6 +348,25 @@ describe("PartyRoom", () => {
       },
     });
     expect(await screen.findByText("(you)")).toBeInTheDocument();
+
+    // A second finished result tied on clicks forces the sort's durationMs
+    // tiebreaker to actually run (not just the clicks comparison).
+    capturedHandlers.onResultChange?.({
+      eventType: "INSERT",
+      id: "r-tied",
+      row: {
+        id: "r-tied",
+        sessionId: "s1",
+        roundNumber: 2,
+        playerId: "someone-else",
+        status: "finished",
+        clicks: 2,
+        durationMs: 100,
+        path: [],
+        finishedAt: "",
+      },
+    });
+    expect(await screen.findByText("(you)")).toBeInTheDocument();
   });
 
   it("auto-completes the round once every player has a result", async () => {
@@ -387,6 +406,41 @@ describe("PartyRoom", () => {
     await waitFor(() =>
       expect(mocked.advancePartyRound).toHaveBeenCalledWith("ABCDEF", "player-1"),
     );
+  });
+
+  it("retries auto-advancing the round after a failure, on the next players update", async () => {
+    mocked.fetchPartySessionByCode.mockResolvedValue(
+      session({ status: "round_results", roundNumber: 1 }),
+    );
+    mocked.fetchPartyPlayers.mockResolvedValue([player({ isReady: true })]);
+    mocked.advancePartyRound
+      .mockRejectedValueOnce(new Error("not ready"))
+      .mockResolvedValueOnce(session({ status: "playing", roundNumber: 2 }));
+
+    render(<PartyRoom code="ABCDEF" />);
+    await waitFor(() => expect(mocked.advancePartyRound).toHaveBeenCalledTimes(1));
+
+    // The failed attempt clears the "already tried this round" ref, but the
+    // effect only re-runs on a genuine players/session change — a realtime
+    // update (even a no-op one) is what actually triggers the retry.
+    await waitFor(() => expect(capturedHandlers.onPlayerChange).toBeTruthy());
+    capturedHandlers.onPlayerChange?.({
+      eventType: "UPDATE",
+      id: "player-1",
+      row: player({ isReady: true }),
+    });
+
+    await waitFor(() => expect(mocked.advancePartyRound).toHaveBeenCalledTimes(2));
+  });
+
+  it("shows an error when starting the game fails", async () => {
+    mocked.fetchPartySessionByCode.mockResolvedValue(session());
+    mocked.fetchPartyPlayers.mockResolvedValue([player()]);
+    mocked.advancePartyRound.mockRejectedValue(new Error("could not start"));
+    render(<PartyRoom code="ABCDEF" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Start Game" }));
+    expect(await screen.findByText("could not start")).toBeInTheDocument();
   });
 
   it("silently ignores a clipboard failure when copying the invite link", async () => {

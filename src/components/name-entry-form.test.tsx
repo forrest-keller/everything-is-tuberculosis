@@ -12,12 +12,24 @@ describe("NameEntryForm", () => {
     expect(onSubmit).toHaveBeenCalledWith("Alice");
   });
 
-  it("does not submit a blank/whitespace-only name", () => {
+  it("disables the submit button for a blank/whitespace-only name", () => {
     const onSubmit = vi.fn();
     render(<NameEntryForm fieldId="name" submitLabel="Join" onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "   " } });
-    fireEvent.click(screen.getByRole("button", { name: "Join" }));
+    expect(screen.getByRole("button", { name: "Join" })).toBeDisabled();
+  });
+
+  it("does not submit a blank/whitespace-only name even if the form is submitted directly", () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <NameEntryForm fieldId="name" submitLabel="Join" onSubmit={onSubmit} />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "   " } });
+    // The submit button is disabled for this input, so bypass it and submit
+    // the form directly to exercise handleSubmit's own guard.
+    fireEvent.submit(container.querySelector("form")!);
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
