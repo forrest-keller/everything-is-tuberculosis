@@ -3,12 +3,10 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody } from "@/lib/validation";
+import { parseJsonBody, requiredString } from "@/lib/validation";
 
-// playerId isn't required here — an absent/malformed one just fails the
-// host/readiness checks below with their own status codes, same as before.
 const advanceSchema = z.object({
-  playerId: z.string().catch(""),
+  playerId: requiredString("Missing player id."),
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {

@@ -53,6 +53,11 @@ describe("POST /api/party/[code]/advance", () => {
     expect(res.status).toBe(429);
   });
 
+  it("returns 400 when playerId is missing", async () => {
+    const res = await call("abcde", {});
+    expect(res.status).toBe(400);
+  });
+
   it("returns 404 when the session doesn't exist", async () => {
     const res = await call("NOPE1", { playerId: "host1" });
     expect(res.status).toBe(404);
