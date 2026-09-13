@@ -504,7 +504,6 @@ function PartyRound({
       <GameHeader
         clicks={race.clicks}
         elapsedMs={race.elapsedMs}
-        currentTitle={race.title}
         isRunning={race.status === "playing" || race.status === "navigating"}
         onRestart={() => {
           setFinalResult(null);

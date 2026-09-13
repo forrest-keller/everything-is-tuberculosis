@@ -256,7 +256,6 @@ export default function DailyPage() {
       <GameHeader
         clicks={race.clicks}
         elapsedMs={race.elapsedMs}
-        currentTitle={race.title}
         isRunning={race.status === "playing" || race.status === "navigating"}
         onRestart={retryToday}
       />

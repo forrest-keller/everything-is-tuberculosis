@@ -26,7 +26,6 @@ export default function GamePage() {
       <GameHeader
         clicks={race.clicks}
         elapsedMs={race.elapsedMs}
-        currentTitle={race.title}
         isRunning={race.status === "playing" || race.status === "navigating"}
         onRestart={restart}
       />
