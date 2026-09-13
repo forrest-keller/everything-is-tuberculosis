@@ -134,6 +134,35 @@ Covers full solo/daily/party journeys (party mode drives two browser
 contexts to exercise real-time sync between two "players") plus a few
 component-focused checks (HowToPlayDialog, GameHeader, ThemeToggle).
 
+## Deployment
+
+The local Docker-based Supabase stack (see [Getting Started](#getting-started))
+is dev/test-only — production needs a real hosted
+[Supabase project](https://supabase.com/dashboard) and its own env vars, set
+directly on whatever platform runs the app (not via `.env.local`, which isn't
+deployed):
+
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — from
+  the Supabase dashboard's Project Settings -> API. Public by design (the
+  `NEXT_PUBLIC_` prefix ships them to the browser): the anon/publishable key
+  only grants what its RLS policies allow.
+- `SUPABASE_SERVICE_ROLE_KEY` — same page. Bypasses RLS entirely
+  ([src/lib/supabase.ts](src/lib/supabase.ts)) — server-only, never expose it
+  to the client.
+- `WIKIMEDIA_ENTERPRISE_USERNAME` / `WIKIMEDIA_ENTERPRISE_PASSWORD` and
+  `WIKI_USER_AGENT_CONTACT_URL` / `WIKI_USER_AGENT_CONTACT_EMAIL` — same as
+  local dev; see [.env.local.example](.env.local.example).
+
+[supabase/migrations](supabase/migrations) get applied to the hosted project
+via Supabase's own [GitHub
+integration](https://supabase.com/docs/guides/deployment/branching/github-integration)
+(Dashboard -> Project Settings -> Integrations -> GitHub), with **Deploy to
+production** enabled and `main` set as the production branch — merges apply
+new migrations automatically, no separate CI workflow needed. Before the
+first deploy, apply them once by hand instead — the hosted project needs to
+exist first (`npx supabase link` then `npx supabase db push`, or paste them
+into the dashboard's SQL editor).
+
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)
