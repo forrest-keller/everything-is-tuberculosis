@@ -21,7 +21,8 @@ function queueFetch(...responses: Response[]) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const queue = [...responses];
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     if (supabaseUrl && url.startsWith(supabaseUrl)) return realFetch(input, init);
     const next = queue.shift();
     if (!next) throw new Error(`queueFetch: no more queued responses (called for ${url})`);
@@ -31,7 +32,8 @@ function queueFetch(...responses: Response[]) {
   return fetchMock;
 }
 
-const wmeLoginOk = () => jsonResponse({ access_token: "token-1", refresh_token: "refresh-1", expires_in: 3600 });
+const wmeLoginOk = () =>
+  jsonResponse({ access_token: "token-1", refresh_token: "refresh-1", expires_in: 3600 });
 const wmeArticle = (name: string, html: string) => jsonResponse([{ name, article_body: { html } }]);
 
 let wikipedia: typeof import("./wikipedia");
@@ -81,7 +83,9 @@ describe("fetchArticle", () => {
 
     // Ordinary wiki link stays clickable.
     expect(article.html).toMatch(/<a[^>]*href="\/wiki\/Bacteria"[^>]*>Bacteria<\/a>/);
-    expect(article.html).toMatch(/<a[^>]*class="wiki-link"[^>]*data-title="Bacteria"[^>]*>Bacteria<\/a>/);
+    expect(article.html).toMatch(
+      /<a[^>]*class="wiki-link"[^>]*data-title="Bacteria"[^>]*>Bacteria<\/a>/,
+    );
 
     // A colon in the title that isn't a namespace prefix is still a real article.
     expect(article.html).toMatch(/data-title="Mission: Impossible"/);
@@ -121,7 +125,7 @@ describe("fetchArticle", () => {
       wmeLoginOk(),
       new Response(null, { status: 404 }), // Enterprise doesn't know "Consumption (disease)"
       jsonResponse({ query: { pages: [{ title: "Tuberculosis" }] } }), // MediaWiki redirect lookup
-      wmeArticle("Tuberculosis", "<p>TB</p>") // retry against the canonical title succeeds
+      wmeArticle("Tuberculosis", "<p>TB</p>"), // retry against the canonical title succeeds
     );
 
     const article = await wikipedia.fetchArticle("Consumption (disease)");
@@ -134,7 +138,7 @@ describe("fetchArticle", () => {
     queueFetch(
       wmeLoginOk(),
       new Response(null, { status: 404 }),
-      jsonResponse({ query: { pages: [{ title: "Made Up Title", missing: true }] } })
+      jsonResponse({ query: { pages: [{ title: "Made Up Title", missing: true }] } }),
     );
 
     await expect(wikipedia.fetchArticle("Made Up Title")).rejects.toThrow(wikipedia.WikipediaError);
@@ -145,7 +149,7 @@ describe("fetchArticle", () => {
       wmeLoginOk(),
       new Response(null, { status: 401 }),
       jsonResponse({ access_token: "token-2", expires_in: 3600 }), // token refresh
-      wmeArticle("Tuberculosis", "<p>TB</p>")
+      wmeArticle("Tuberculosis", "<p>TB</p>"),
     );
 
     const article = await wikipedia.fetchArticle("Tuberculosis");
@@ -159,7 +163,7 @@ describe("fetchArticle", () => {
       new Response(null, { status: 404 }), // raw title miss
       new Response(null, { status: 404 }), // cached canonical title also now misses
       jsonResponse({ query: { pages: [{ title: "Fresh Canonical" }] } }), // live re-resolution
-      wmeArticle("Fresh Canonical", "<p>TB</p>")
+      wmeArticle("Fresh Canonical", "<p>TB</p>"),
     );
 
     const article = await wikipedia.fetchArticle("Some Old Title");
@@ -186,7 +190,7 @@ describe("fetchRandomTitle", () => {
   it("retries on a 5xx before succeeding", async () => {
     queueFetch(
       new Response("server exploded", { status: 503 }),
-      jsonResponse({ title: "Recovered Article" })
+      jsonResponse({ title: "Recovered Article" }),
     );
     await expect(wikipedia.fetchRandomTitle()).resolves.toBe("Recovered Article");
   }, 10_000);
@@ -199,7 +203,7 @@ describe("fetchRandomStartArticle", () => {
       wmeLoginOk(),
       wmeArticle("Tuberculosis", "<p>TB</p>"),
       jsonResponse({ title: "Other Article" }),
-      wmeArticle("Other Article", "<p>Not TB</p>")
+      wmeArticle("Other Article", "<p>Not TB</p>"),
     );
 
     const article = await wikipedia.fetchRandomStartArticle();

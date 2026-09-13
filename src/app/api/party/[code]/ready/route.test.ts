@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupFixtures, getTestServiceClient, insertPartyPlayer, insertPartySession } from "@/test/db";
+import {
+  cleanupFixtures,
+  getTestServiceClient,
+  insertPartyPlayer,
+  insertPartySession,
+} from "@/test/db";
 
 const { isRateLimited } = vi.hoisted(() => ({ isRateLimited: vi.fn(() => false) }));
 vi.mock("@/lib/rate-limit", async (importOriginal) => {

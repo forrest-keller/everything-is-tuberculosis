@@ -3,10 +3,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ code: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-navigate:${clientIp(request)}`, 60)) return rateLimitResponse();
 
   const { code } = await params;
@@ -16,7 +13,10 @@ export async function POST(
   const title = typeof body?.title === "string" ? body.title : "";
 
   if (!playerId || !title || Number.isNaN(roundNumber)) {
-    return NextResponse.json({ error: "Missing playerId, roundNumber, or title." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing playerId, roundNumber, or title." },
+      { status: 400 },
+    );
   }
 
   const supabase = getSupabaseServiceClient();
@@ -82,7 +82,9 @@ export async function POST(
   } catch (error) {
     console.error("[/api/party/[code]/attempt/navigate] failed:", error);
     const message =
-      error instanceof WikipediaError ? error.message : "Something went wrong talking to Wikipedia.";
+      error instanceof WikipediaError
+        ? error.message
+        : "Something went wrong talking to Wikipedia.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

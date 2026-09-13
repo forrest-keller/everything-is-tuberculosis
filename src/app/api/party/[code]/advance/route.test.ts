@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupFixtures, getTestServiceClient, insertPartyPlayer, insertPartySession } from "@/test/db";
+import {
+  cleanupFixtures,
+  getTestServiceClient,
+  insertPartyPlayer,
+  insertPartySession,
+} from "@/test/db";
 
 const { isRateLimited } = vi.hoisted(() => ({ isRateLimited: vi.fn(() => false) }));
 vi.mock("@/lib/rate-limit", async (importOriginal) => {
@@ -31,7 +36,11 @@ describe("POST /api/party/[code]/advance", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isRateLimited.mockReturnValue(false);
-    fetchRandomStartArticle.mockResolvedValue({ title: "New Article", html: "<p/>", isTarget: false });
+    fetchRandomStartArticle.mockResolvedValue({
+      title: "New Article",
+      html: "<p/>",
+      isTarget: false,
+    });
   });
 
   afterEach(async () => {
@@ -61,13 +70,21 @@ describe("POST /api/party/[code]/advance", () => {
 
   it("lets the host start the game from the lobby", async () => {
     const hostId = crypto.randomUUID();
-    const session = await insertPartySession({ status: "lobby", host_player_id: hostId, round_number: 0 });
+    const session = await insertPartySession({
+      status: "lobby",
+      host_player_id: hostId,
+      round_number: 0,
+    });
 
     const res = await call(session.code, { playerId: hostId });
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toMatchObject({ status: "playing", round_number: 1, current_start_title: "New Article" });
+    expect(body).toMatchObject({
+      status: "playing",
+      round_number: 1,
+      current_start_title: "New Article",
+    });
 
     const db = getTestServiceClient();
     const { data } = await db.from("party_sessions").select("*").eq("id", session.id).single();
@@ -140,12 +157,18 @@ describe("POST /api/party/[code]/advance", () => {
     const res = await call(session.code, { playerId: hostId });
 
     expect(res.status).toBe(502);
-    await expect(res.json()).resolves.toEqual({ error: "Something went wrong talking to Wikipedia." });
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong talking to Wikipedia.",
+    });
   });
 
   it("only lets one of two concurrent advance calls win the real status-guarded update", async () => {
     const hostId = crypto.randomUUID();
-    const session = await insertPartySession({ status: "lobby", host_player_id: hostId, round_number: 0 });
+    const session = await insertPartySession({
+      status: "lobby",
+      host_player_id: hostId,
+      round_number: 0,
+    });
 
     const [a, b] = await Promise.all([
       call(session.code, { playerId: hostId }),
@@ -160,7 +183,11 @@ describe("POST /api/party/[code]/advance", () => {
     expect(statuses).toEqual([200, 409]);
 
     const db = getTestServiceClient();
-    const { data } = await db.from("party_sessions").select("round_number").eq("id", session.id).single();
+    const { data } = await db
+      .from("party_sessions")
+      .select("round_number")
+      .eq("id", session.id)
+      .single();
     expect(data?.round_number).toBe(1);
   });
 });

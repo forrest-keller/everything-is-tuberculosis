@@ -40,7 +40,11 @@ describe("getOrCreateTodayChallenge", () => {
   });
 
   it("creates and returns a new row when none exists yet", async () => {
-    fetchRandomStartArticle.mockResolvedValue({ title: "New Article", html: "<p/>", isTarget: false });
+    fetchRandomStartArticle.mockResolvedValue({
+      title: "New Article",
+      html: "<p/>",
+      isTarget: false,
+    });
 
     const result = await getOrCreateTodayChallenge();
 

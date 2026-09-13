@@ -52,7 +52,9 @@ describe("POST /api/party/create", () => {
   });
 
   it("returns 400 when hostName is too long", async () => {
-    const res = await POST(makeRequest({ hostName: "x".repeat(33), hostPlayerId: crypto.randomUUID() }));
+    const res = await POST(
+      makeRequest({ hostName: "x".repeat(33), hostPlayerId: crypto.randomUUID() }),
+    );
     expect(res.status).toBe(400);
   });
 
@@ -63,7 +65,7 @@ describe("POST /api/party/create", () => {
 
   it("returns 400 when the body isn't valid JSON", async () => {
     const res = await POST(
-      new Request("http://localhost/api/party/create", { method: "POST", body: "not json" })
+      new Request("http://localhost/api/party/create", { method: "POST", body: "not json" }),
     );
     expect(res.status).toBe(400);
   });

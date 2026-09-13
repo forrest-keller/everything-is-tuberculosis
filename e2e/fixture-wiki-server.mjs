@@ -48,9 +48,16 @@ const server = createServer(async (req, res) => {
 
   // Wikimedia Enterprise auth — token contents don't matter, nothing here
   // ever validates them.
-  if (req.method === "POST" && (url.pathname === "/v1/login" || url.pathname === "/v1/token-refresh")) {
+  if (
+    req.method === "POST" &&
+    (url.pathname === "/v1/login" || url.pathname === "/v1/token-refresh")
+  ) {
     await drainBody(req);
-    return sendJson(res, 200, { access_token: "fixture-token", refresh_token: "fixture-refresh", expires_in: 3600 });
+    return sendJson(res, 200, {
+      access_token: "fixture-token",
+      refresh_token: "fixture-refresh",
+      expires_in: 3600,
+    });
   }
 
   // Wikimedia Enterprise article content.

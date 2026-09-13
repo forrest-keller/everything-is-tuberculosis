@@ -52,7 +52,9 @@ export function LeaderboardTable({ rows, emptyMessage }: LeaderboardTableProps) 
               {row.isSelf && <span className="ml-1.5 text-xs text-muted-foreground">(you)</span>}
             </TableCell>
             <TableCell className="text-right tabular-nums">{row.clicks}</TableCell>
-            <TableCell className="text-right tabular-nums">{formatDuration(row.durationMs)}</TableCell>
+            <TableCell className="text-right tabular-nums">
+              {formatDuration(row.durationMs)}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

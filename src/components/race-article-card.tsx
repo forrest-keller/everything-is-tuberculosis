@@ -61,7 +61,9 @@ export function RaceArticleCard({ race, onNavigate, onRetry }: RaceArticleCardPr
             </div>
           </div>
         )}
-        <CardContent className={race.status === "navigating" ? "pointer-events-none select-none" : ""}>
+        <CardContent
+          className={race.status === "navigating" ? "pointer-events-none select-none" : ""}
+        >
           <h1 className="mb-4 font-heading text-2xl font-semibold">{race.title}</h1>
           <WikiArticle title={race.title} html={race.html} onNavigate={onNavigate} />
         </CardContent>

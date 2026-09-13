@@ -55,27 +55,19 @@ export function WinDialog({
           </div>
           <div className="flex flex-col items-center gap-1 rounded-lg border bg-muted/40 py-3">
             <Timer className="size-4 text-muted-foreground" />
-            <span className="text-2xl font-semibold tabular-nums">
-              {formatDuration(elapsedMs)}
-            </span>
+            <span className="text-2xl font-semibold tabular-nums">{formatDuration(elapsedMs)}</span>
             <span className="text-xs text-muted-foreground">time</span>
           </div>
         </div>
 
         <div>
           <Separator className="mb-2" />
-          <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-            Your path
-          </p>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">Your path</p>
           <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
             {path.map((title, index) => (
               <div key={`${title}-${index}`} className="flex items-center gap-1.5">
-                <Badge variant={index === path.length - 1 ? "default" : "secondary"}>
-                  {title}
-                </Badge>
-                {index < path.length - 1 && (
-                  <span className="text-muted-foreground">→</span>
-                )}
+                <Badge variant={index === path.length - 1 ? "default" : "secondary"}>{title}</Badge>
+                {index < path.length - 1 && <span className="text-muted-foreground">→</span>}
               </div>
             ))}
           </div>

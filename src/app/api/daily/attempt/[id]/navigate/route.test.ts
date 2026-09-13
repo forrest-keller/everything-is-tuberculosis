@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupFixtures, getTestServiceClient, insertDailyChallenge, insertDailyScore } from "@/test/db";
+import {
+  cleanupFixtures,
+  getTestServiceClient,
+  insertDailyChallenge,
+  insertDailyScore,
+} from "@/test/db";
 
 const { isRateLimited } = vi.hoisted(() => ({ isRateLimited: vi.fn(() => false) }));
 vi.mock("@/lib/rate-limit", async (importOriginal) => {
@@ -24,7 +29,7 @@ function call(id: string, body: unknown) {
       method: "POST",
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ id }) }
+    { params: Promise.resolve({ id }) },
   );
 }
 
@@ -77,7 +82,10 @@ describe("POST /api/daily/attempt/[id]/navigate", () => {
 
   it("returns 409 when the attempt has already finished", async () => {
     const { attempt, playerId } = await setUpInProgressAttempt();
-    await getTestServiceClient().from("daily_scores").update({ status: "finished" }).eq("id", attempt.id);
+    await getTestServiceClient()
+      .from("daily_scores")
+      .update({ status: "finished" })
+      .eq("id", attempt.id);
 
     const res = await call(attempt.id, { playerId, title: "X" });
     expect(res.status).toBe(409);
@@ -105,7 +113,11 @@ describe("POST /api/daily/attempt/[id]/navigate", () => {
       .select("clicks, path, status")
       .eq("id", attempt.id)
       .single();
-    expect(data).toMatchObject({ clicks: 2, path: ["Bacteria", "Next Article"], status: "in_progress" });
+    expect(data).toMatchObject({
+      clicks: 2,
+      path: ["Bacteria", "Next Article"],
+      status: "in_progress",
+    });
   });
 
   it("marks the attempt finished and returns elapsedMs when the target is reached", async () => {

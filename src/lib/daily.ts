@@ -68,7 +68,7 @@ export async function createDailyAttempt(params: {
 export async function navigateDailyAttempt(
   attemptId: string,
   playerId: string,
-  title: string
+  title: string,
 ): Promise<DailyNavigateResult> {
   const res = await fetch(`/api/daily/attempt/${attemptId}/navigate`, {
     method: "POST",
@@ -82,7 +82,7 @@ export async function navigateDailyAttempt(
 
 export async function fetchDailyLeaderboard(
   challengeDate: string,
-  limit = 20
+  limit = 20,
 ): Promise<DailyScore[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase

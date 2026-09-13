@@ -24,8 +24,11 @@ import { POST } from "./route";
 
 function call(code: string, body: unknown) {
   return POST(
-    new Request(`http://localhost/api/party/${code}/attempt`, { method: "POST", body: JSON.stringify(body) }),
-    { params: Promise.resolve({ code }) }
+    new Request(`http://localhost/api/party/${code}/attempt`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ code }) },
   );
 }
 

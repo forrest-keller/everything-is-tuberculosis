@@ -60,7 +60,11 @@ describe("applyRealtimeChange", () => {
 
   it("is a no-op deleting an id that isn't present", () => {
     const list: Item[] = [{ id: "1", value: "a" }];
-    const change: RealtimeRowChange<Item> = { eventType: "DELETE", id: "does-not-exist", row: null };
+    const change: RealtimeRowChange<Item> = {
+      eventType: "DELETE",
+      id: "does-not-exist",
+      row: null,
+    };
     expect(applyRealtimeChange(list, change)).toEqual(list);
   });
 

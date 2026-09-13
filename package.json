@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/ensure-local-dev-supabase.mts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:db && npm run test:e2e",
     "test:unit": "vitest run",
@@ -16,7 +19,18 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop"
+    "supabase:stop": "supabase stop",
+    "supabase:dev:start": "node scripts/ensure-local-dev-supabase.mts",
+    "supabase:dev:reset": "node scripts/ensure-local-dev-supabase.mts --reset",
+    "supabase:dev:stop": "supabase stop --workdir supabase-dev",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": "prettier --write"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -48,7 +62,11 @@
     "@vitest/coverage-v8": "^5.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "eslint-config-prettier": "10.1.8",
+    "husky": "9.1.7",
     "jsdom": "^30.0.1",
+    "lint-staged": "17.5.1",
+    "prettier": "3.9.6",
     "supabase": "^2.117.0",
     "tailwindcss": "^4",
     "typescript": "^5",

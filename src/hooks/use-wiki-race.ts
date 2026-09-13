@@ -94,7 +94,7 @@ export function useWikiRace() {
         });
       }
     },
-    [stopwatch]
+    [stopwatch],
   );
 
   // For event handlers (Restart, Try again): flips to "loading" immediately.
@@ -103,7 +103,7 @@ export function useWikiRace() {
       dispatch({ type: "LOAD_START" });
       void runLoad(loadStart);
     },
-    [runLoad]
+    [runLoad],
   );
 
   // For effects (mount, realtime round changes): never synchronously
@@ -123,13 +123,13 @@ export function useWikiRace() {
       hasLoadedInBackgroundRef.current = true;
       void runLoad(loadStart);
     },
-    [runLoad]
+    [runLoad],
   );
 
   const handleNavigate = useCallback(
     async (
       title: string,
-      navigate: (title: string) => Promise<WikiArticleResponse> = fetchArticleByTitle
+      navigate: (title: string) => Promise<WikiArticleResponse> = fetchArticleByTitle,
     ) => {
       if (state.status !== "playing") return;
       dispatch({ type: "NAV_START" });
@@ -149,7 +149,7 @@ export function useWikiRace() {
         });
       }
     },
-    [state.status, stopwatch]
+    [state.status, stopwatch],
   );
 
   return { ...state, elapsedMs: stopwatch.elapsedMs, start, loadInBackground, handleNavigate };

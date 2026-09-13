@@ -79,7 +79,7 @@ async function readJsonOrThrow(res: Response) {
 
 export async function createPartySession(
   hostName: string,
-  hostPlayerId: string
+  hostPlayerId: string,
 ): Promise<PartySession> {
   const res = await fetch("/api/party/create", {
     method: "POST",
@@ -104,7 +104,7 @@ export async function fetchPartySessionByCode(code: string): Promise<PartySessio
 export async function joinPartySession(
   code: string,
   playerId: string,
-  name: string
+  name: string,
 ): Promise<PartyPlayer> {
   const res = await fetch(`/api/party/${code}/join`, {
     method: "POST",
@@ -128,7 +128,7 @@ export async function fetchPartyPlayers(sessionId: string): Promise<PartyPlayer[
 
 export async function fetchPartyRoundResults(
   sessionId: string,
-  roundNumber: number
+  roundNumber: number,
 ): Promise<PartyRoundResult[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -146,7 +146,7 @@ export async function fetchPartyRoundResults(
 export async function setPlayerReady(
   code: string,
   playerId: string,
-  isReady: boolean
+  isReady: boolean,
 ): Promise<void> {
   const res = await fetch(`/api/party/${code}/ready`, {
     method: "POST",
@@ -194,7 +194,7 @@ export async function navigatePartyAttempt(
   code: string,
   playerId: string,
   roundNumber: number,
-  title: string
+  title: string,
 ): Promise<PartyNavigateResult> {
   const res = await fetch(`/api/party/${code}/attempt/navigate`, {
     method: "POST",
@@ -241,7 +241,7 @@ export interface RealtimeRowChange<T> {
 /** Applies one row change to a locally-held list without refetching. */
 export function applyRealtimeChange<T extends { id: string }>(
   list: T[],
-  change: RealtimeRowChange<T>
+  change: RealtimeRowChange<T>,
 ): T[] {
   if (change.eventType === "DELETE") {
     return list.filter((item) => item.id !== change.id);
@@ -262,7 +262,7 @@ export function subscribeToPartySession(
     /** Fired when the socket resubscribes after a drop, so the caller can
      * do a one-time refetch to patch over whatever events were missed. */
     onResync?: () => void;
-  }
+  },
 ): RealtimeChannel {
   const supabase = getSupabaseClient();
   let hasSubscribedBefore = false;
@@ -274,11 +274,16 @@ export function subscribeToPartySession(
       { event: "*", schema: "public", table: "party_sessions", filter: `id=eq.${sessionId}` },
       (payload) => {
         if (payload.new && "id" in payload.new) handlers.onSessionChange?.(mapSession(payload.new));
-      }
+      },
     )
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "party_players", filter: `session_id=eq.${sessionId}` },
+      {
+        event: "*",
+        schema: "public",
+        table: "party_players",
+        filter: `session_id=eq.${sessionId}`,
+      },
       (payload) => {
         const eventType = payload.eventType as RealtimeRowChange<PartyPlayer>["eventType"];
         const oldRow = payload.old as Record<string, unknown>;
@@ -290,7 +295,7 @@ export function subscribeToPartySession(
           id,
           row: eventType === "DELETE" ? null : mapPlayer(newRow),
         });
-      }
+      },
     )
     .on(
       "postgres_changes",
@@ -311,7 +316,7 @@ export function subscribeToPartySession(
           id,
           row: eventType === "DELETE" ? null : mapResult(newRow),
         });
-      }
+      },
     )
     .subscribe((status) => {
       if (status === "SUBSCRIBED") {

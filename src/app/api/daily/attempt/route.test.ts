@@ -24,7 +24,10 @@ import { POST } from "./route";
 const TODAY = new Date().toISOString().slice(0, 10);
 
 function makeRequest(body: unknown) {
-  return new Request("http://localhost/api/daily/attempt", { method: "POST", body: JSON.stringify(body) });
+  return new Request("http://localhost/api/daily/attempt", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 describe("POST /api/daily/attempt", () => {

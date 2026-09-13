@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     if (error || !attempt) {
       return NextResponse.json(
         { error: error?.message ?? "Failed to start today's attempt." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

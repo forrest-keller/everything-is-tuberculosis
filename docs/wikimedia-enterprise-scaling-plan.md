@@ -39,7 +39,7 @@ scale actually demands it, not a to-do list to implement today.
    something to build a scaled product on, and it doesn't satisfy a
    requirement to avoid public APIs entirely.
 4. **No content cache.** Repeated fetches of identical articles mean
-   repeated network round-trips *and* repeated cheerio/sanitize-html work
+   repeated network round-trips _and_ repeated cheerio/sanitize-html work
    for output that hasn't changed. This cost scales linearly with traffic
    for no reason.
 5. **Storage/cost cliff if the public API is dropped entirely.** Replacing
@@ -75,7 +75,7 @@ prod server doesn't need this yet.
 Track monthly on-demand request counts (a simple counter, incremented per
 `fetchArticle` call that isn't a cache hit) against the 50,000/month
 free-tier ceiling, with an alert well before it's reached. This is what
-tells you *when* Phase 4 is actually necessary, instead of guessing.
+tells you _when_ Phase 4 is actually necessary, instead of guessing.
 
 ### Phase 4 — remove the public API dependency
 
@@ -87,7 +87,7 @@ API, and stop calling any public Wikipedia endpoint:
   field-filtered to just `name` and `redirects` (not `article_body` — that's
   still fetched live from the on-demand API per Phase 1's cache).
 - Store the canonical title list and an inverted `redirect name → canonical
-  name` map in Supabase.
+name` map in Supabase.
 - `fetchRandomTitle()` becomes a local random-row query; redirect resolution
   becomes a local table lookup.
 
@@ -103,7 +103,7 @@ cost and a new pipeline to operate:
 - **Snapshot free-tier quota:** capped at 30 requests / 1,500 chunks per
   month, and this is a count of chunk-download calls, not a byte quota.
   Chunk boundaries (`enwiki_namespace_0_chunk_0`, `_chunk_1`, ...) appear to
-  be fixed at snapshot-generation time based on the *full* corpus (enwiki's
+  be fixed at snapshot-generation time based on the _full_ corpus (enwiki's
   full snapshot, with article bodies, is reportedly over a terabyte) —
   filtering `fields` down to `name`/`redirects` shrinks the bytes in each
   chunk but almost certainly does **not** reduce how many chunks
@@ -130,11 +130,11 @@ Phase 4's monthly cadence is demonstrably not good enough.
 Using current English Wikipedia counts (7,238,931 articles, 11.8M redirects
 — [Wikipedia:Statistics](https://en.wikipedia.org/wiki/Wikipedia:Statistics)):
 
-| Table | Rows | Est. bytes/row (data + indexes) | Est. size |
-|---|---|---|---|
-| Titles | 7.24M | ~115 | ~0.85 GB |
-| Redirects | 11.8M | ~100 | ~1.2 GB |
-| **Total** | | | **~2–3 GB** |
+| Table     | Rows  | Est. bytes/row (data + indexes) | Est. size   |
+| --------- | ----- | ------------------------------- | ----------- |
+| Titles    | 7.24M | ~115                            | ~0.85 GB    |
+| Redirects | 11.8M | ~100                            | ~1.2 GB     |
+| **Total** |       |                                 | **~2–3 GB** |
 
 This is names and an integer link between them, not article content — full
 HTML dumps of Wikipedia run 50–100+ GB, which is exactly what filtering the

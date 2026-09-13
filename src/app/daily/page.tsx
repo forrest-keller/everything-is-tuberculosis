@@ -41,7 +41,9 @@ export default function DailyPage() {
   const race = useWikiRace();
   const [playerId] = useState(() => getOrCreatePlayerId());
   const [attemptId, setAttemptId] = useState<string | null>(null);
-  const [finalResult, setFinalResult] = useState<{ clicks: number; elapsedMs: number } | null>(null);
+  const [finalResult, setFinalResult] = useState<{ clicks: number; elapsedMs: number } | null>(
+    null,
+  );
 
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [challengeError, setChallengeError] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export default function DailyPage() {
         void refreshLeaderboard(loaded.challengeDate);
       })
       .catch((err: unknown) =>
-        setChallengeError(err instanceof Error ? err.message : "Failed to load today's challenge.")
+        setChallengeError(err instanceof Error ? err.message : "Failed to load today's challenge."),
       );
   }, [refreshLeaderboard]);
 
@@ -146,8 +148,8 @@ export default function DailyPage() {
           </Badge>
           <h1 className="font-heading text-2xl font-semibold">Daily Challenge</h1>
           <p className="text-sm text-muted-foreground">
-            Everyone starting today&apos;s challenge begins on the same article. Enter your
-            name to see how you rank.
+            Everyone starting today&apos;s challenge begins on the same article. Enter your name to
+            see how you rank.
           </p>
         </div>
 

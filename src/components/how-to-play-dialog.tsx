@@ -15,11 +15,7 @@ import { HelpCircle } from "lucide-react";
 export function HowToPlayDialog() {
   return (
     <Dialog>
-      <DialogTrigger
-        render={
-          <Button variant="outline" size="sm" className="gap-1.5" />
-        }
-      >
+      <DialogTrigger render={<Button variant="outline" size="sm" className="gap-1.5" />}>
         <HelpCircle className="size-3.5" />
         How to play
       </DialogTrigger>

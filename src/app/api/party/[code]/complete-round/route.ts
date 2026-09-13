@@ -10,10 +10,7 @@ import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
  * this service-role route rather than a direct client write to party_sessions
  * (see the RLS policies in supabase/migrations/0001_initial_schema.sql).
  */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ code: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-complete-round:${clientIp(request)}`, 30)) return rateLimitResponse();
 
   const { code } = await params;

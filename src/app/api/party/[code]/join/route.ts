@@ -6,10 +6,7 @@ import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 // directly from the browser (see the RLS policies in
 // supabase/migrations/0001_initial_schema.sql) so joining can't be used to
 // overwrite an arbitrary existing player's row via direct PostgREST access.
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ code: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-join:${clientIp(request)}`, 20)) return rateLimitResponse();
 
   const { code } = await params;
@@ -23,7 +20,7 @@ export async function POST(
   if (!name || name.length > 32) {
     return NextResponse.json(
       { error: "Enter a name between 1 and 32 characters." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 

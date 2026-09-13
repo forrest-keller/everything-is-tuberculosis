@@ -22,7 +22,7 @@ clicks (and as little time) as possible.
   similar clutter are stripped, and only genuine article links stay
   clickable — citations, external links, and non-article namespaces
   (categories, files, templates, etc.) are disabled.
-- A click is a "win" once the fetched article's *canonical* title (after
+- A click is a "win" once the fetched article's _canonical_ title (after
   redirects) matches `Tuberculosis`.
 - The daily challenge and party mode both persist state in Supabase
   (Postgres + Realtime); schema and RLS policies live in

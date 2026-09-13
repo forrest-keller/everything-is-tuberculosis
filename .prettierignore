@@ -1,0 +1,11 @@
+.next/
+out/
+build/
+coverage/
+next-env.d.ts
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+package-lock.json
+supabase/.temp/

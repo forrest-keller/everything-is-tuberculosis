@@ -14,8 +14,10 @@ const TARGET_TITLE = "Tuberculosis";
 // Used for article content. It has no random-article or redirect-lookup
 // endpoint, so those two operations still go through the free public APIs
 // above; only per-title content fetches move to Enterprise.
-const WME_AUTH_ORIGIN = process.env.WME_AUTH_ORIGIN_OVERRIDE || "https://auth.enterprise.wikimedia.com";
-const WME_API_ORIGIN = process.env.WME_API_ORIGIN_OVERRIDE || "https://api.enterprise.wikimedia.com";
+const WME_AUTH_ORIGIN =
+  process.env.WME_AUTH_ORIGIN_OVERRIDE || "https://auth.enterprise.wikimedia.com";
+const WME_API_ORIGIN =
+  process.env.WME_API_ORIGIN_OVERRIDE || "https://api.enterprise.wikimedia.com";
 const WME_PROJECT = "enwiki";
 
 /**
@@ -121,7 +123,7 @@ function processArticleHtml(rawHtml: string): string {
     "script, style, link, base, .mw-editsection, .navbox, .vertical-navbox, " +
       ".navbox-styles, .ambox, .hatnote, .dablink, .rellink, .sistersitebox, " +
       ".metadata, .noprint, table.mbox-small, .mw-empty-elt, .shortdescription, " +
-      ".sidebar"
+      ".sidebar",
   ).remove();
 
   $("a").each((_, el) => {
@@ -136,8 +138,7 @@ function processArticleHtml(rawHtml: string): string {
     const rel = anchor.attr("rel") ?? "";
     const relTokens = rel.split(/\s+/);
     const isWikiLink =
-      relTokens.includes("mw:WikiLink") &&
-      (href.startsWith("./") || href.startsWith("/wiki/"));
+      relTokens.includes("mw:WikiLink") && (href.startsWith("./") || href.startsWith("/wiki/"));
 
     if (!isWikiLink) {
       anchor.addClass("wiki-link-disabled");
@@ -198,11 +199,50 @@ function processArticleHtml(rawHtml: string): string {
 
   return sanitizeHtml(bodyHtml, {
     allowedTags: [
-      "p", "a", "span", "div", "section", "b", "i", "em", "strong", "u", "s",
-      "ul", "ol", "li", "table", "thead", "tbody", "tfoot", "tr", "td", "th",
-      "img", "sup", "sub", "br", "h1", "h2", "h3", "h4", "h5", "h6",
-      "blockquote", "figure", "figcaption", "cite", "small", "abbr", "code",
-      "pre", "dl", "dt", "dd", "hr", "caption",
+      "p",
+      "a",
+      "span",
+      "div",
+      "section",
+      "b",
+      "i",
+      "em",
+      "strong",
+      "u",
+      "s",
+      "ul",
+      "ol",
+      "li",
+      "table",
+      "thead",
+      "tbody",
+      "tfoot",
+      "tr",
+      "td",
+      "th",
+      "img",
+      "sup",
+      "sub",
+      "br",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "blockquote",
+      "figure",
+      "figcaption",
+      "cite",
+      "small",
+      "abbr",
+      "code",
+      "pre",
+      "dl",
+      "dt",
+      "dd",
+      "hr",
+      "caption",
     ],
     allowedAttributes: {
       a: ["href", "class", "data-title", "title", "id"],
@@ -245,11 +285,7 @@ function retryAfterMs(res: Response): number | null {
   return Math.min(Math.max(dateMs - Date.now(), 0), MAX_RETRY_AFTER_MS);
 }
 
-async function fetchWithRetry(
-  url: string,
-  init: RequestInit = {},
-  retries = 2
-): Promise<Response> {
+async function fetchWithRetry(url: string, init: RequestInit = {}, retries = 2): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, {
       redirect: "follow",
@@ -273,7 +309,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 export async function fetchRandomTitle(): Promise<string> {
   const data = await fetchJson<{ title?: string }>(
-    `${WIKI_ORIGIN}/api/rest_v1/page/random/summary`
+    `${WIKI_ORIGIN}/api/rest_v1/page/random/summary`,
   );
   if (!data.title) {
     throw new WikipediaError("Wikipedia did not return a random article title");
@@ -289,7 +325,7 @@ export async function fetchRandomTitle(): Promise<string> {
  */
 async function resolveRedirectTitle(title: string): Promise<string | null> {
   const url = `${WIKI_ORIGIN}/w/api.php?action=query&redirects=1&format=json&formatversion=2&titles=${encodeURIComponent(
-    title
+    title,
   )}`;
   const data = await fetchJson<{
     query: { pages: { title: string; missing?: boolean }[] };
@@ -335,9 +371,11 @@ async function getCachedRedirect(rawTitle: string): Promise<string | null> {
 async function putCachedRedirect(rawTitle: string, canonicalTitle: string): Promise<void> {
   try {
     const supabase = getSupabaseServiceClient();
-    const { error } = await supabase
-      .from("redirect_cache")
-      .upsert({ raw_title: rawTitle, canonical_title: canonicalTitle, resolved_at: new Date().toISOString() });
+    const { error } = await supabase.from("redirect_cache").upsert({
+      raw_title: rawTitle,
+      canonical_title: canonicalTitle,
+      resolved_at: new Date().toISOString(),
+    });
     if (error) console.error("[wikipedia] redirect cache write failed:", error.message);
   } catch (err) {
     console.error("[wikipedia] redirect cache write failed:", err);
@@ -389,7 +427,7 @@ function wmeCredentials(): { username: string; password: string } {
   const password = process.env.WIKIMEDIA_ENTERPRISE_PASSWORD;
   if (!username || !password) {
     throw new WikipediaError(
-      "Wikimedia Enterprise credentials are not configured (WIKIMEDIA_ENTERPRISE_USERNAME / WIKIMEDIA_ENTERPRISE_PASSWORD)"
+      "Wikimedia Enterprise credentials are not configured (WIKIMEDIA_ENTERPRISE_USERNAME / WIKIMEDIA_ENTERPRISE_PASSWORD)",
     );
   }
   return { username, password };
@@ -445,9 +483,7 @@ async function wmeGetAccessToken(forceRefresh = false): Promise<string> {
   }
   if (!wmeLoginPromise) {
     const current = wmeTokenState;
-    wmeLoginPromise = (
-      forceRefresh || !current ? wmeLogin() : wmeRefresh(current)
-    ).finally(() => {
+    wmeLoginPromise = (forceRefresh || !current ? wmeLogin() : wmeRefresh(current)).finally(() => {
       wmeLoginPromise = null;
     });
   }

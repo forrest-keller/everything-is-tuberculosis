@@ -3,10 +3,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ code: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-advance:${clientIp(request)}`, 10)) return rateLimitResponse();
 
   const { code } = await params;
@@ -25,10 +22,7 @@ export async function POST(
 
   if (session.status === "lobby") {
     if (session.host_player_id !== playerId) {
-      return NextResponse.json(
-        { error: "Only the host can start the game." },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Only the host can start the game." }, { status: 403 });
     }
   } else if (session.status === "round_results") {
     const { data: players, error: playersError } = await supabase
@@ -42,7 +36,7 @@ export async function POST(
   } else {
     return NextResponse.json(
       { error: `Can't start a new round from status "${session.status}".` },
-      { status: 409 }
+      { status: 409 },
     );
   }
 
@@ -52,7 +46,9 @@ export async function POST(
   } catch (error) {
     console.error("[/api/party/[code]/advance] failed:", error);
     const message =
-      error instanceof WikipediaError ? error.message : "Something went wrong talking to Wikipedia.";
+      error instanceof WikipediaError
+        ? error.message
+        : "Something went wrong talking to Wikipedia.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 

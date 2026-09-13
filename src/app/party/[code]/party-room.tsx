@@ -91,9 +91,7 @@ export function PartyRoom({ code }: PartyRoomProps) {
         roundNumberRef.current = found.roundNumber;
         await Promise.all([
           refreshPlayers(found.id),
-          found.roundNumber > 0
-            ? refreshResults(found.id, found.roundNumber)
-            : Promise.resolve(),
+          found.roundNumber > 0 ? refreshResults(found.id, found.roundNumber) : Promise.resolve(),
         ]);
       })
       .catch((err: unknown) => {
@@ -123,7 +121,7 @@ export function PartyRoom({ code }: PartyRoomProps) {
       // session's read cost stays O(1) per event instead of O(players).
       onPlayerChange: (change) => {
         setPlayers((prev) =>
-          applyRealtimeChange(prev, change).sort((a, b) => a.joinedAt.localeCompare(b.joinedAt))
+          applyRealtimeChange(prev, change).sort((a, b) => a.joinedAt.localeCompare(b.joinedAt)),
         );
       },
       onResultChange: (change) => {
@@ -134,8 +132,8 @@ export function PartyRoom({ code }: PartyRoomProps) {
         if (change.row && change.row.status !== "finished") return;
         setResults((prev) =>
           applyRealtimeChange(prev, change).sort(
-            (a, b) => a.clicks - b.clicks || a.durationMs - b.durationMs
-          )
+            (a, b) => a.clicks - b.clicks || a.durationMs - b.durationMs,
+          ),
         );
       },
       // The socket dropped and came back — patch over whatever events were
@@ -431,10 +429,19 @@ interface PartyRoundProps {
   onWin: () => void;
 }
 
-function PartyRound({ code, playerId, roundNumber, resultsCount, playersCount, onWin }: PartyRoundProps) {
+function PartyRound({
+  code,
+  playerId,
+  roundNumber,
+  resultsCount,
+  playersCount,
+  onWin,
+}: PartyRoundProps) {
   const race = useWikiRace();
   const firedRef = useRef(false);
-  const [finalResult, setFinalResult] = useState<{ clicks: number; elapsedMs: number } | null>(null);
+  const [finalResult, setFinalResult] = useState<{ clicks: number; elapsedMs: number } | null>(
+    null,
+  );
 
   const startAttempt = useCallback(async () => {
     const attempt = await createPartyAttempt(code, playerId);
@@ -451,7 +458,7 @@ function PartyRound({ code, playerId, roundNumber, resultsCount, playersCount, o
       }
       return result;
     },
-    [code, playerId, roundNumber]
+    [code, playerId, roundNumber],
   );
 
   useEffect(() => {

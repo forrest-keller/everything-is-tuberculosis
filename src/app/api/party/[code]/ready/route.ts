@@ -5,10 +5,7 @@ import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 // Writes to party_players go through this service-role route rather than
 // directly from the browser (see the RLS policies in
 // supabase/migrations/0001_initial_schema.sql).
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ code: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-ready:${clientIp(request)}`, 20)) return rateLimitResponse();
 
   const { code } = await params;

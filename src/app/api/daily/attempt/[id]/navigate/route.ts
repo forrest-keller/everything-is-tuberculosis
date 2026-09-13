@@ -3,10 +3,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (isRateLimited(`daily-navigate:${clientIp(request)}`, 60)) return rateLimitResponse();
 
   const { id } = await params;
@@ -71,7 +68,9 @@ export async function POST(
   } catch (error) {
     console.error("[/api/daily/attempt/[id]/navigate] failed:", error);
     const message =
-      error instanceof WikipediaError ? error.message : "Something went wrong talking to Wikipedia.";
+      error instanceof WikipediaError
+        ? error.message
+        : "Something went wrong talking to Wikipedia.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

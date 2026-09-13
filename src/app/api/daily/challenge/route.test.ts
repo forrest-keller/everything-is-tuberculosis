@@ -51,7 +51,11 @@ describe("GET /api/daily/challenge", () => {
   });
 
   it("creates today's challenge on first request", async () => {
-    fetchRandomStartArticle.mockResolvedValue({ title: "Fresh Article", html: "<p/>", isTarget: false });
+    fetchRandomStartArticle.mockResolvedValue({
+      title: "Fresh Article",
+      html: "<p/>",
+      isTarget: false,
+    });
 
     const res = await GET(new NextRequest("http://localhost/api/daily/challenge"));
 

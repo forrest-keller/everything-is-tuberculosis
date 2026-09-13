@@ -45,7 +45,7 @@ describe("POST /api/party/[code]/join", () => {
     const params = Promise.resolve({ code: "abcde" });
     const tooLong = await POST(
       makeRequest("abcde", { playerId: crypto.randomUUID(), name: "x".repeat(33) }),
-      { params }
+      { params },
     );
     expect(tooLong.status).toBe(400);
 

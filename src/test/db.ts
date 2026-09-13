@@ -16,7 +16,7 @@ export function getTestServiceClient(): SupabaseClient {
   if (!url || !key) {
     throw new Error(
       "Missing local Supabase env vars. Run `npm run supabase:start` (requires Docker) " +
-        "or just `npm test`, which starts it automatically via vitest.global-setup.ts."
+        "or just `npm test`, which starts it automatically via vitest.global-setup.ts.",
     );
   }
   client = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -61,7 +61,7 @@ export interface PartySessionRow {
 /** Inserts a party_sessions row directly (bypassing the create-session route,
  * since most route tests want to start from an already-existing session). */
 export async function insertPartySession(
-  overrides: Partial<Omit<PartySessionRow, "id">> = {}
+  overrides: Partial<Omit<PartySessionRow, "id">> = {},
 ): Promise<PartySessionRow> {
   const db = getTestServiceClient();
   const { data, error } = await db
@@ -92,7 +92,7 @@ export interface PartyPlayerRow {
 
 export async function insertPartyPlayer(
   sessionId: string,
-  overrides: Partial<Omit<PartyPlayerRow, "session_id">> = {}
+  overrides: Partial<Omit<PartyPlayerRow, "session_id">> = {},
 ): Promise<PartyPlayerRow> {
   const db = getTestServiceClient();
   const { data, error } = await db
@@ -161,7 +161,7 @@ export interface DailyChallengeRow {
 /** Defaults to today (UTC), matching `getOrCreateTodayChallenge`'s notion of
  * "today" — upserted so repeated calls within a test don't collide. */
 export async function insertDailyChallenge(
-  overrides: Partial<DailyChallengeRow> = {}
+  overrides: Partial<DailyChallengeRow> = {},
 ): Promise<DailyChallengeRow> {
   const db = getTestServiceClient();
   const challengeDate = overrides.challenge_date ?? new Date().toISOString().slice(0, 10);
@@ -224,7 +224,7 @@ export async function insertDailyScore(overrides: {
 export async function insertRedirectCache(
   rawTitle: string,
   canonicalTitle: string,
-  resolvedAt: string = new Date().toISOString()
+  resolvedAt: string = new Date().toISOString(),
 ): Promise<void> {
   const db = getTestServiceClient();
   const { error } = await db

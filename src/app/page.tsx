@@ -1,12 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RULES } from "@/lib/rules";
@@ -48,24 +42,18 @@ export default function LandingPage() {
             Everything is <span className="text-primary">Tuberculosis</span>
           </h1>
           <p className="max-w-lg text-balance text-muted-foreground">
-            No matter where Wikipedia drops you, every article is secretly just a
-            few clicks away from Tuberculosis. Prove it — as fast as you can, in
-            as few clicks as possible.
+            No matter where Wikipedia drops you, every article is secretly just a few clicks away
+            from Tuberculosis. Prove it — as fast as you can, in as few clicks as possible.
           </p>
         </div>
 
         <Alert className="mb-6">
           <Info />
           <AlertDescription>
-            This is an unofficial fan project and is not affiliated with or
-            endorsed by the Wikimedia Foundation. It&apos;s inspired by, but
-            likewise not affiliated with or endorsed by, John Green&apos;s
-            book of the same name — check out{" "}
-            <a
-              href="https://everythingistb.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            This is an unofficial fan project and is not affiliated with or endorsed by the
+            Wikimedia Foundation. It&apos;s inspired by, but likewise not affiliated with or
+            endorsed by, John Green&apos;s book of the same name — check out{" "}
+            <a href="https://everythingistb.com/" target="_blank" rel="noopener noreferrer">
               Everything Is Tuberculosis
             </a>{" "}
             for the real story.

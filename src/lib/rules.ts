@@ -11,14 +11,12 @@ export const RULES: Rule[] = [
   {
     icon: Shuffle,
     title: "You start somewhere random",
-    description:
-      "Every game drops you on a random Wikipedia article. Could be anything.",
+    description: "Every game drops you on a random Wikipedia article. Could be anything.",
   },
   {
     icon: Link2,
     title: "Click your way there",
-    description:
-      "Click any link inside the article to jump to the page it points to.",
+    description: "Click any link inside the article to jump to the page it points to.",
   },
   {
     icon: Ban,

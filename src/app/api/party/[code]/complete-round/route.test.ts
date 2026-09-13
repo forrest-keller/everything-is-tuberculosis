@@ -21,7 +21,7 @@ function call(code: string, body: unknown) {
       method: "POST",
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ code }) }
+    { params: Promise.resolve({ code }) },
   );
 }
 
@@ -76,8 +76,18 @@ describe("POST /api/party/[code]/complete-round", () => {
     const session = await insertPartySession({ status: "playing", round_number: 1 });
     const p1 = await insertPartyPlayer(session.id);
     const p2 = await insertPartyPlayer(session.id);
-    await insertPartyRoundResult({ sessionId: session.id, roundNumber: 1, playerId: p1.id, status: "finished" });
-    await insertPartyRoundResult({ sessionId: session.id, roundNumber: 1, playerId: p2.id, status: "finished" });
+    await insertPartyRoundResult({
+      sessionId: session.id,
+      roundNumber: 1,
+      playerId: p1.id,
+      status: "finished",
+    });
+    await insertPartyRoundResult({
+      sessionId: session.id,
+      roundNumber: 1,
+      playerId: p2.id,
+      status: "finished",
+    });
 
     const res = await call(session.code, { roundNumber: 1 });
 
@@ -93,8 +103,18 @@ describe("POST /api/party/[code]/complete-round", () => {
     const session = await insertPartySession({ status: "playing", round_number: 1 });
     const p1 = await insertPartyPlayer(session.id);
     const p2 = await insertPartyPlayer(session.id);
-    await insertPartyRoundResult({ sessionId: session.id, roundNumber: 1, playerId: p1.id, status: "finished" });
-    await insertPartyRoundResult({ sessionId: session.id, roundNumber: 1, playerId: p2.id, status: "in_progress" });
+    await insertPartyRoundResult({
+      sessionId: session.id,
+      roundNumber: 1,
+      playerId: p1.id,
+      status: "finished",
+    });
+    await insertPartyRoundResult({
+      sessionId: session.id,
+      roundNumber: 1,
+      playerId: p2.id,
+      status: "in_progress",
+    });
 
     await call(session.code, { roundNumber: 1 });
 

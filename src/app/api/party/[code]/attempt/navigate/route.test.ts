@@ -28,7 +28,7 @@ function call(code: string, body: unknown) {
       method: "POST",
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ code }) }
+    { params: Promise.resolve({ code }) },
   );
 }
 
@@ -75,7 +75,11 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
 
   it("returns 404 when the attempt doesn't exist", async () => {
     const session = await insertPartySession({ status: "playing" });
-    const res = await call(session.code, { playerId: crypto.randomUUID(), roundNumber: 1, title: "X" });
+    const res = await call(session.code, {
+      playerId: crypto.randomUUID(),
+      roundNumber: 1,
+      title: "X",
+    });
     expect(res.status).toBe(404);
   });
 
@@ -97,7 +101,11 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
     fetchArticle.mockResolvedValue({ title: "Next Article", html: "<p/>", isTarget: false });
     const { session, player, roundNumber } = await setUpInProgressAttempt();
 
-    const res = await call(session.code, { playerId: player.id, roundNumber, title: "Next Article" });
+    const res = await call(session.code, {
+      playerId: player.id,
+      roundNumber,
+      title: "Next Article",
+    });
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({
@@ -116,14 +124,22 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
       .eq("round_number", roundNumber)
       .eq("player_id", player.id)
       .single();
-    expect(data).toMatchObject({ clicks: 3, path: ["Bacteria", "Next Article"], status: "in_progress" });
+    expect(data).toMatchObject({
+      clicks: 3,
+      path: ["Bacteria", "Next Article"],
+      status: "in_progress",
+    });
   });
 
   it("marks the attempt finished and returns elapsedMs when the target is reached", async () => {
     fetchArticle.mockResolvedValue({ title: "Tuberculosis", html: "<p/>", isTarget: true });
     const { session, player, roundNumber } = await setUpInProgressAttempt();
 
-    const res = await call(session.code, { playerId: player.id, roundNumber, title: "Tuberculosis" });
+    const res = await call(session.code, {
+      playerId: player.id,
+      roundNumber,
+      title: "Tuberculosis",
+    });
 
     expect(res.status).toBe(200);
     const body = await res.json();

@@ -18,7 +18,7 @@ test("solo mode: click through the fixture link graph to a win", async ({ page }
   await expect(disabledLinks).toHaveCount(3); // external, redlink, category
   await expect(disabledLinks.filter({ hasText: "an external reference" })).not.toHaveAttribute(
     "href",
-    /.+/
+    /.+/,
   );
 
   await article.getByRole("link", { name: MIDDLE_TITLE }).click();
@@ -26,7 +26,9 @@ test("solo mode: click through the fixture link graph to a win", async ({ page }
 
   await page.locator(".wiki-content").getByRole("link", { name: TARGET_TITLE }).click();
 
-  await expect(page.getByRole("heading", { name: "Diagnosis confirmed: it was Tuberculosis" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Diagnosis confirmed: it was Tuberculosis" }),
+  ).toBeVisible();
   await expect(page.getByText("2", { exact: true }).first()).toBeVisible(); // click count
   await expect(page.getByText(RANDOM_START_TITLE)).toBeVisible(); // path badge
   await expect(page.getByText(MIDDLE_TITLE)).toBeVisible();

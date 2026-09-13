@@ -60,7 +60,7 @@ describe("GET /api/wiki", () => {
   });
 
   it("returns 502 with the WikipediaError message on a known failure", async () => {
-    fetchArticle.mockRejectedValue(new WikipediaError("Could not load \"X\" from Wikipedia (404)"));
+    fetchArticle.mockRejectedValue(new WikipediaError('Could not load "X" from Wikipedia (404)'));
 
     const res = await GET(new NextRequest("http://localhost/api/wiki?title=X"));
 

@@ -3,10 +3,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ code: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (isRateLimited(`party-attempt:${clientIp(request)}`, 10)) return rateLimitResponse();
 
   const { code } = await params;
@@ -57,7 +54,7 @@ export async function POST(
         duration_ms: 0,
         started_at: new Date().toISOString(),
       },
-      { onConflict: "session_id,round_number,player_id" }
+      { onConflict: "session_id,round_number,player_id" },
     );
 
     if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 400 });
@@ -71,7 +68,9 @@ export async function POST(
   } catch (error) {
     console.error("[/api/party/[code]/attempt] failed:", error);
     const message =
-      error instanceof WikipediaError ? error.message : "Something went wrong talking to Wikipedia.";
+      error instanceof WikipediaError
+        ? error.message
+        : "Something went wrong talking to Wikipedia.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

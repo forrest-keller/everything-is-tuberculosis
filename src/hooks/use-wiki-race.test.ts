@@ -58,7 +58,9 @@ describe("useWikiRace", () => {
       result.current.start(loadStart);
     });
 
-    const navigate = vi.fn().mockResolvedValue({ title: "Tuberculosis", html: "<p/>", isTarget: true });
+    const navigate = vi
+      .fn()
+      .mockResolvedValue({ title: "Tuberculosis", html: "<p/>", isTarget: true });
     await act(async () => {
       await result.current.handleNavigate("Tuberculosis", navigate);
     });
