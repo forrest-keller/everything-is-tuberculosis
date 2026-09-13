@@ -24,15 +24,15 @@ export default defineConfig({
       reporter: ["text", "html"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/app/**/page.tsx", "src/app/**/layout.tsx", "src/components/ui/**"],
-      // Baseline floor set a few points under measured coverage at the time this
-      // gate was introduced, so `npm run test:coverage` (and thus CI) fails on a
-      // regression without blocking on pre-existing gaps. Ratchet these up as
-      // coverage improves — don't lower them to make a failing PR pass.
+      // Required minimum for `npm run test:coverage` (and thus CI) to pass.
+      // Coverage measured locally at the time this gate was introduced was
+      // well under 90% on every metric, so this is a deliberately strict
+      // target, not a baseline — expect it to fail CI until coverage catches up.
       thresholds: {
-        statements: 55,
-        branches: 50,
-        functions: 40,
-        lines: 55,
+        statements: 90,
+        branches: 90,
+        functions: 90,
+        lines: 90,
       },
     },
   },
