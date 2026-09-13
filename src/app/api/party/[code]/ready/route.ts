@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredBoolean, requiredString } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredBoolean, requiredString } from "@/lib/validation";
 
 const MISSING_FIELDS_MSG = "Missing playerId or isReady.";
 const readySchema = z.object({
@@ -28,7 +28,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/ready");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   const { error: updateError } = await supabase
@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("id", playerId)
     .eq("session_id", session.id);
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+  if (updateError) return dbErrorResponse(updateError, 500, "/api/party/[code]/ready");
 
   return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString, requiredTrimmedString } from "@/lib/validation";
+import {
+  dbErrorResponse,
+  parseJsonBody,
+  requiredString,
+  requiredTrimmedString,
+} from "@/lib/validation";
 
 const joinSchema = z.object({
   playerId: requiredString("Missing player id."),
@@ -30,7 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/join");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   // Update-then-insert rather than upsert-by-id: an upsert would let a
@@ -49,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .select()
     .maybeSingle();
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
+  if (updateError) return dbErrorResponse(updateError, 400, "/api/party/[code]/join");
   if (updated) return NextResponse.json({ player: updated });
 
   const { data: inserted, error: insertError } = await supabase
@@ -65,7 +70,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
         { status: 409 },
       );
     }
-    return NextResponse.json({ error: insertError.message }, { status: 400 });
+    return dbErrorResponse(insertError, 400, "/api/party/[code]/join");
   }
 
   return NextResponse.json({ player: inserted });

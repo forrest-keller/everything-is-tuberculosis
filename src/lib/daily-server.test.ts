@@ -73,6 +73,8 @@ describe("getOrCreateTodayChallenge", () => {
     // race, so the fallback read (which finds nothing) should surface it.
     fetchRandomStartArticle.mockResolvedValue({ title: null, html: "<p/>", isTarget: false });
 
-    await expect(getOrCreateTodayChallenge()).rejects.toThrow(/null value|not-null/i);
+    await expect(getOrCreateTodayChallenge()).rejects.toThrow(
+      "Failed to create today's challenge.",
+    );
   });
 });
