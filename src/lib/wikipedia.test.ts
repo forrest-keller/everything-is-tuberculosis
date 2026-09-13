@@ -164,7 +164,9 @@ describe("fetchArticle", () => {
     queueFetch(
       wmeLoginOk(),
       new Response(null, { status: 401 }),
-      jsonResponse({ access_token: "token-2", expires_in: 3600 }), // token refresh
+      // A forced refresh always does a full re-login (see wmeGetAccessToken),
+      // never a token-refresh, so this needs a full login-shaped response.
+      jsonResponse({ access_token: "token-2", refresh_token: "refresh-2", expires_in: 3600 }),
       wmeArticle("Tuberculosis", "<p>TB</p>"),
     );
 
