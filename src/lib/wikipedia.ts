@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import sanitizeHtml from "sanitize-html";
+import { z, type ZodType } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 
 // Overridable so Playwright's E2E suite can point this module at a small
@@ -307,22 +308,45 @@ async function fetchWithRetry(url: string, init: RequestInit = {}, retries = 2):
   }
 }
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+/**
+ * Wire-format API responses come from services we don't control, so a
+ * shape/field-name change upstream should surface as a clear WikipediaError
+ * at the fetch site instead of an `undefined` silently flowing downstream or
+ * a confusing TypeError several calls later.
+ */
+function parseWikipediaResponse<T>(schema: ZodType<T>, data: unknown, context: string): T {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    const detail = result.error.issues
+      .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+      .join("; ");
+    throw new WikipediaError(`Unexpected ${context} response shape: ${detail}`);
+  }
+  return result.data;
+}
+
+async function fetchJson<T>(
+  url: string,
+  schema: ZodType<T>,
+  context: string,
+  init?: RequestInit,
+): Promise<T> {
   const res = await fetchWithRetry(url, init);
   if (!res.ok) {
     throw new WikipediaError(`Wikipedia API request failed (${res.status})`);
   }
-  return res.json() as Promise<T>;
+  return parseWikipediaResponse(schema, await res.json(), context);
 }
+
+const randomTitleResponseSchema = z.object({ title: z.string().min(1) });
 
 export async function fetchRandomTitle(): Promise<string> {
   try {
-    const data = await fetchJson<{ title?: string }>(
+    const data = await fetchJson(
       `${WIKI_ORIGIN}/api/rest_v1/page/random/summary`,
+      randomTitleResponseSchema,
+      "random article summary",
     );
-    if (!data.title) {
-      throw new WikipediaError("Wikipedia did not return a random article title");
-    }
     return data.title;
   } catch (err) {
     const fallback = await getRandomCachedTitle();
@@ -330,6 +354,12 @@ export async function fetchRandomTitle(): Promise<string> {
     throw err;
   }
 }
+
+const redirectLookupResponseSchema = z.object({
+  query: z.object({
+    pages: z.array(z.object({ title: z.string(), missing: z.boolean().optional() })),
+  }),
+});
 
 /**
  * A title clicked in-article may be a redirect (e.g. "Consumption
@@ -341,9 +371,7 @@ async function resolveRedirectTitle(title: string): Promise<string | null> {
   const url = `${WIKI_ORIGIN}/w/api.php?action=query&redirects=1&format=json&formatversion=2&titles=${encodeURIComponent(
     title,
   )}`;
-  const data = await fetchJson<{
-    query: { pages: { title: string; missing?: boolean }[] };
-  }>(url);
+  const data = await fetchJson(url, redirectLookupResponseSchema, "redirect lookup");
   const page = data.query.pages[0];
   if (!page || page.missing) return null;
   return page.title;
@@ -476,6 +504,17 @@ function wmeCredentials(): { username: string; password: string } {
   return { username, password };
 }
 
+const wmeLoginResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_in: z.number(),
+});
+
+const wmeRefreshResponseSchema = z.object({
+  access_token: z.string(),
+  expires_in: z.number(),
+});
+
 async function wmeLogin(): Promise<WmeTokenState> {
   const { username, password } = wmeCredentials();
   const res = await fetch(`${WME_AUTH_ORIGIN}/v1/login`, {
@@ -486,11 +525,11 @@ async function wmeLogin(): Promise<WmeTokenState> {
   if (!res.ok) {
     throw new WikipediaError(`Wikimedia Enterprise login failed (${res.status})`);
   }
-  const data = (await res.json()) as {
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-  };
+  const data = parseWikipediaResponse(
+    wmeLoginResponseSchema,
+    await res.json(),
+    "Wikimedia Enterprise login",
+  );
   return {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
@@ -506,7 +545,11 @@ async function wmeRefresh(state: WmeTokenState): Promise<WmeTokenState> {
     body: JSON.stringify({ username, refresh_token: state.refreshToken }),
   });
   if (!res.ok) return wmeLogin();
-  const data = (await res.json()) as { access_token: string; expires_in: number };
+  const data = parseWikipediaResponse(
+    wmeRefreshResponseSchema,
+    await res.json(),
+    "Wikimedia Enterprise token refresh",
+  );
   return {
     accessToken: data.access_token,
     refreshToken: state.refreshToken,
@@ -534,10 +577,12 @@ async function wmeGetAccessToken(forceRefresh = false): Promise<string> {
   return wmeTokenState.accessToken;
 }
 
-interface WmeArticle {
-  name: string;
-  article_body?: { html?: string };
-}
+const wmeArticleSchema = z.object({
+  name: z.string(),
+  article_body: z.object({ html: z.string().optional() }).optional(),
+});
+const wmeArticleListResponseSchema = z.array(wmeArticleSchema);
+type WmeArticle = z.infer<typeof wmeArticleSchema>;
 
 async function wmeFetchArticle(title: string, retryOn401 = true): Promise<WmeArticle[]> {
   const accessToken = await wmeGetAccessToken();
@@ -563,7 +608,11 @@ async function wmeFetchArticle(title: string, retryOn401 = true): Promise<WmeArt
   if (!res.ok) {
     throw new WikipediaError(`Wikimedia Enterprise request failed (${res.status})`);
   }
-  return res.json() as Promise<WmeArticle[]>;
+  return parseWikipediaResponse(
+    wmeArticleListResponseSchema,
+    await res.json(),
+    "Wikimedia Enterprise article",
+  );
 }
 
 /**

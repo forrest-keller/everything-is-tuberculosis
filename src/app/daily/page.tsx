@@ -30,6 +30,11 @@ import { AlertTriangle, CalendarDays, PartyPopper } from "lucide-react";
 function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative mx-auto w-full max-w-lg flex-1 px-4 py-16">
+      <div className="absolute top-4 left-4">
+        <Link href="/" className="font-heading text-sm font-semibold whitespace-nowrap">
+          Everything is Tuberculosis
+        </Link>
+      </div>
       <div className="absolute top-4 right-4 flex items-center gap-1">
         <BuyMeACoffeeButton />
         <ThemeToggle />
