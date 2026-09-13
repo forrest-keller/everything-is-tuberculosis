@@ -97,6 +97,18 @@ describe("POST /api/daily/attempt/[id]/navigate", () => {
     expect(fetchArticle).not.toHaveBeenCalled();
   });
 
+  it("returns 409 once the attempt has reached the max click cap", async () => {
+    const { attempt, playerId } = await setUpInProgressAttempt();
+    await getTestServiceClient()
+      .from("daily_scores")
+      .update({ clicks: 300 })
+      .eq("id", attempt.id);
+
+    const res = await call(attempt.id, { playerId, title: "X" });
+    expect(res.status).toBe(409);
+    expect(fetchArticle).not.toHaveBeenCalled();
+  });
+
   it("increments clicks and appends to the path on a non-winning click", async () => {
     fetchArticle.mockResolvedValue({ title: "Next Article", html: "<p/>", isTarget: false });
     const { attempt, playerId } = await setUpInProgressAttempt();
