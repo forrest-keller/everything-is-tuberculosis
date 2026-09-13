@@ -74,6 +74,11 @@ describe("POST /api/daily/attempt/[id]/navigate", () => {
     expect(res.status).toBe(404);
   });
 
+  it("returns 500 when the id isn't a valid uuid", async () => {
+    const res = await call("not-a-uuid", { playerId: crypto.randomUUID(), title: "X" });
+    expect(res.status).toBe(500);
+  });
+
   it("returns 403 when the attempt belongs to someone else", async () => {
     const { attempt } = await setUpInProgressAttempt();
     const res = await call(attempt.id, { playerId: crypto.randomUUID(), title: "X" });
@@ -156,5 +161,16 @@ describe("POST /api/daily/attempt/[id]/navigate", () => {
     const res = await call(attempt.id, { playerId, title: "X" });
     expect(res.status).toBe(502);
     await expect(res.json()).resolves.toEqual({ error: "Could not load it" });
+  });
+
+  it("returns a default 502 message when something other than a WikipediaError is thrown", async () => {
+    fetchArticle.mockRejectedValue("not an Error instance");
+    const { attempt, playerId } = await setUpInProgressAttempt();
+
+    const res = await call(attempt.id, { playerId, title: "X" });
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong talking to Wikipedia.",
+    });
   });
 });

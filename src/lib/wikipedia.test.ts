@@ -59,6 +59,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -76,7 +77,12 @@ describe("fetchArticle", () => {
       <a rel="mw:WikiLink" href="./Category:Bacteria">Category link</a></p>
       <script>alert('xss')</script>
       <table><tbody><tr><td>Cell</td></tr></tbody></table>
-      <img src="//upload.wikimedia.org/thumb.png" style="width:100px" width="100">
+      <table class="infobox"><tbody><tr><td>
+        Infobox content
+        <table><tbody><tr><td>Nested inside infobox</td></tr></tbody></table>
+      </td></tr></tbody></table>
+      <img src="//upload.wikimedia.org/thumb.png" style="width:100px" width="100"
+        srcset="//upload.wikimedia.org/thumb-1.5x.png 1.5x, //upload.wikimedia.org/thumb-2x.png 2x">
     `;
     queueFetch(wmeLoginOk(), wmeArticle("Tuberculosis", rawHtml));
 
@@ -108,7 +114,15 @@ describe("fetchArticle", () => {
 
     expect(article.html).toContain('<div class="wiki-table-scroll">');
 
+    // The infobox gets its own float wrapper rather than the plain scroll
+    // wrapper, and a table nested inside it is left unwrapped either way.
+    expect(article.html).toContain('<div class="infobox-wrap">');
+    expect(article.html).not.toContain('<div class="wiki-table-scroll"><table class="infobox"');
+
     expect(article.html).toContain('src="https://upload.wikimedia.org/thumb.png"');
+    expect(article.html).toContain(
+      'srcset="https://upload.wikimedia.org/thumb-1.5x.png 1.5x, https://upload.wikimedia.org/thumb-2x.png 2x"',
+    );
     expect(article.html).toContain('loading="lazy"');
     expect(article.html).not.toContain("style=");
     expect(article.html).not.toContain('width="100"');
@@ -174,6 +188,37 @@ describe("fetchArticle", () => {
     expect(article.title).toBe("Tuberculosis");
   });
 
+  it("refreshes the token via token-refresh (not a full login) once it's near expiry", async () => {
+    queueFetch(wmeLoginOk(), wmeArticle("Bacteria", "<p>1</p>"));
+    await wikipedia.fetchArticle("Bacteria");
+
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(3600_000); // past the login's expiry buffer
+
+    queueFetch(
+      jsonResponse({ access_token: "refreshed-token", expires_in: 3600 }), // token-refresh, no refresh_token/login shape
+      wmeArticle("Bacteria", "<p>2</p>"),
+    );
+    const article = await wikipedia.fetchArticle("Bacteria");
+    expect(article.title).toBe("Bacteria");
+  });
+
+  it("falls back to a full login when the token-refresh request itself fails", async () => {
+    queueFetch(wmeLoginOk(), wmeArticle("Bacteria", "<p>1</p>"));
+    await wikipedia.fetchArticle("Bacteria");
+
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(3600_000);
+
+    queueFetch(
+      new Response(null, { status: 401 }), // token-refresh fails
+      wmeLoginOk(), // falls back to a full re-login
+      wmeArticle("Bacteria", "<p>2</p>"),
+    );
+    const article = await wikipedia.fetchArticle("Bacteria");
+    expect(article.title).toBe("Bacteria");
+  });
+
   it("self-heals a stale cached redirect that no longer resolves on Enterprise", async () => {
     await insertRedirectCache("Some Old Title", "Old Canonical");
     queueFetch(
@@ -188,9 +233,42 @@ describe("fetchArticle", () => {
     expect(article.title).toBe("Fresh Canonical");
   });
 
+  it("throws WikipediaError on a non-404/401 Enterprise error status", async () => {
+    // fetchWithRetry retries a 5xx twice before giving up, so this needs one
+    // queued 500 per attempt (3 total) rather than just one.
+    queueFetch(
+      wmeLoginOk(),
+      new Response("server exploded", { status: 500 }),
+      new Response("server exploded", { status: 500 }),
+      new Response("server exploded", { status: 500 }),
+    );
+    await expect(wikipedia.fetchArticle("Tuberculosis")).rejects.toThrow(
+      /Wikimedia Enterprise request failed \(500\)/,
+    );
+  }, 10_000);
+
+  it("throws WikipediaError when a self-heal re-resolution also comes back empty", async () => {
+    await insertRedirectCache("Some Old Title", "Old Canonical");
+    queueFetch(
+      wmeLoginOk(),
+      new Response(null, { status: 404 }), // raw title miss
+      new Response(null, { status: 404 }), // cached canonical also now misses
+      jsonResponse({ query: { pages: [{ title: "Old Canonical", missing: true }] } }), // fresh lookup: still missing
+    );
+
+    await expect(wikipedia.fetchArticle("Some Old Title")).rejects.toThrow(/Old Canonical/);
+  });
+
   it("throws WikipediaError when Enterprise credentials are missing", async () => {
     vi.unstubAllEnvs();
     await expect(wikipedia.fetchArticle("Tuberculosis")).rejects.toThrow(wikipedia.WikipediaError);
+  });
+
+  it("throws WikipediaError when the initial login request itself fails", async () => {
+    queueFetch(new Response(null, { status: 401 })); // login rejects the configured credentials
+    await expect(wikipedia.fetchArticle("Tuberculosis")).rejects.toThrow(
+      /Wikimedia Enterprise login failed \(401\)/,
+    );
   });
 });
 
@@ -208,6 +286,14 @@ describe("fetchRandomTitle", () => {
   it("retries on a 5xx before succeeding", async () => {
     queueFetch(
       new Response("server exploded", { status: 503 }),
+      jsonResponse({ title: "Recovered Article" }),
+    );
+    await expect(wikipedia.fetchRandomTitle()).resolves.toBe("Recovered Article");
+  }, 10_000);
+
+  it("honors a numeric Retry-After header when retrying a 429", async () => {
+    queueFetch(
+      new Response("slow down", { status: 429, headers: { "Retry-After": "1" } }),
       jsonResponse({ title: "Recovered Article" }),
     );
     await expect(wikipedia.fetchRandomTitle()).resolves.toBe("Recovered Article");
@@ -238,5 +324,23 @@ describe("fetchRandomStartArticle", () => {
     const article = await wikipedia.fetchRandomStartArticle();
     expect(article.title).toBe("Other Article");
     expect(article.isTarget).toBe(false);
+  });
+
+  it("gives up after 5 attempts that all land on the target", async () => {
+    queueFetch(
+      jsonResponse({ title: "Random1" }),
+      wmeLoginOk(),
+      wmeArticle("Tuberculosis", "<p>TB</p>"),
+      jsonResponse({ title: "Random2" }),
+      wmeArticle("Tuberculosis", "<p>TB</p>"),
+      jsonResponse({ title: "Random3" }),
+      wmeArticle("Tuberculosis", "<p>TB</p>"),
+      jsonResponse({ title: "Random4" }),
+      wmeArticle("Tuberculosis", "<p>TB</p>"),
+      jsonResponse({ title: "Random5" }),
+      wmeArticle("Tuberculosis", "<p>TB</p>"),
+    );
+
+    await expect(wikipedia.fetchRandomStartArticle()).rejects.toThrow(wikipedia.WikipediaError);
   });
 });

@@ -24,6 +24,16 @@ export default defineConfig({
       reporter: ["text", "html"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/app/**/page.tsx", "src/app/**/layout.tsx", "src/components/ui/**"],
+      // Required minimum for `npm run test:coverage` (and thus CI) to pass.
+      // Coverage measured locally at the time this gate was introduced was
+      // well under 90% on every metric, so this is a deliberately strict
+      // target, not a baseline — expect it to fail CI until coverage catches up.
+      thresholds: {
+        statements: 90,
+        branches: 90,
+        functions: 90,
+        lines: 90,
+      },
     },
   },
 });

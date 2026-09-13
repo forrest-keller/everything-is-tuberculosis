@@ -37,6 +37,20 @@ describe("isRateLimited", () => {
     expect(isRateLimited(key, 1, 1_000)).toBe(false);
     vi.useRealTimers();
   });
+
+  it("sweeps expired buckets once enough time has passed, without disrupting new callers", () => {
+    vi.useFakeTimers();
+    const staleKey = `sweep-stale-${crypto.randomUUID()}`;
+    const freshKey = `sweep-fresh-${crypto.randomUUID()}`;
+    isRateLimited(staleKey, 1, 10); // expires almost immediately
+    isRateLimited(freshKey, 1, 60_000_000); // still well within its window at sweep time
+    vi.advanceTimersByTime(6 * 60_000);
+    expect(isRateLimited(`sweep-trigger-${crypto.randomUUID()}`, 1)).toBe(false);
+    // The fresh bucket must have survived the sweep: a second call within its
+    // (still active) window hits the existing count, not a fresh bucket.
+    expect(isRateLimited(freshKey, 1, 60_000_000)).toBe(true);
+    vi.useRealTimers();
+  });
 });
 
 describe("clientIp", () => {

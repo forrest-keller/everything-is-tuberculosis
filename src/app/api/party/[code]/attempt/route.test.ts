@@ -71,6 +71,15 @@ describe("POST /api/party/[code]/attempt", () => {
     expect(res.status).toBe(409);
   });
 
+  it("returns 500 when playerId isn't a valid uuid", async () => {
+    const session = await insertPartySession({
+      status: "playing",
+      current_start_title: "Bacteria",
+    });
+    const res = await call(session.code, { playerId: "not-a-uuid" });
+    expect(res.status).toBe(500);
+  });
+
   it("returns 409 when the player already finished this round", async () => {
     const session = await insertPartySession({
       status: "playing",
@@ -177,5 +186,22 @@ describe("POST /api/party/[code]/attempt", () => {
 
     expect(res.status).toBe(502);
     await expect(res.json()).resolves.toEqual({ error: "Could not load it" });
+  });
+
+  it("returns a default 502 message when something other than a WikipediaError is thrown", async () => {
+    fetchArticle.mockRejectedValue("not an Error instance");
+    const session = await insertPartySession({
+      status: "playing",
+      round_number: 2,
+      current_start_title: "Bacteria",
+    });
+    const player = await insertPartyPlayer(session.id);
+
+    const res = await call(session.code, { playerId: player.id });
+
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong talking to Wikipedia.",
+    });
   });
 });

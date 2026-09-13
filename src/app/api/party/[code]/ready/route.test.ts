@@ -77,6 +77,14 @@ describe("POST /api/party/[code]/ready", () => {
     expect(data?.is_ready).toBe(true);
   });
 
+  it("returns 500 when playerId isn't a valid uuid", async () => {
+    const session = await insertPartySession();
+    const res = await POST(makeRequest(session.code, { playerId: "not-a-uuid", isReady: true }), {
+      params: Promise.resolve({ code: session.code }),
+    });
+    expect(res.status).toBe(500);
+  });
+
   it("is a no-op when the player belongs to a different session", async () => {
     const sessionA = await insertPartySession();
     const sessionB = await insertPartySession();
