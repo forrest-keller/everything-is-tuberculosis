@@ -57,8 +57,6 @@ export function GameHeader({ clicks, elapsedMs, isRunning, onRestart }: GameHead
 
           <div className="flex items-center gap-2">
             <HowToPlayDialog />
-            <BuyMeACoffeeButton />
-            <ThemeToggle />
           </div>
         </div>
 
@@ -76,10 +74,16 @@ export function GameHeader({ clicks, elapsedMs, isRunning, onRestart }: GameHead
               {formatDuration(elapsedMs)}
             </Badge>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRestartClick} className="gap-1.5">
-            <RotateCcw className="size-3.5" />
-            Restart
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleRestartClick} className="gap-1.5">
+              <RotateCcw className="size-3.5" />
+              Restart
+            </Button>
+            <div className="flex items-center gap-1">
+              <BuyMeACoffeeButton />
+              <ThemeToggle />
+            </div>
+          </div>
         </div>
       </div>
 
