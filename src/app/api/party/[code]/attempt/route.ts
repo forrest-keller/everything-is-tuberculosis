@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredString } from "@/lib/validation";
 
 const attemptSchema = z.object({
   playerId: requiredString("Missing playerId."),
@@ -24,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/attempt");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
   if (session.status !== "playing" || !session.current_start_title) {
     return NextResponse.json({ error: "This round isn't active." }, { status: 409 });
@@ -38,7 +38,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("player_id", playerId)
     .maybeSingle();
 
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  if (existingError) return dbErrorResponse(existingError, 500, "/api/party/[code]/attempt");
   if (existing?.status === "finished") {
     return NextResponse.json({ error: "You've already finished this round." }, { status: 409 });
   }
@@ -60,7 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       { onConflict: "session_id,round_number,player_id" },
     );
 
-    if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 400 });
+    if (upsertError) return dbErrorResponse(upsertError, 400, "/api/party/[code]/attempt");
 
     return NextResponse.json({
       roundNumber: session.round_number,

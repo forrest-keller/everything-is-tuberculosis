@@ -77,14 +77,14 @@ describe("POST /api/daily/attempt", () => {
 
   it("returns 400 when the insert fails for real (invalid player id)", async () => {
     // player_id is a uuid column with no format validation upstream — a
-    // non-UUID string is a genuine Postgres error, not a mocked one.
+    // non-UUID string is a genuine Postgres error, not a mocked one. The
+    // route hides the raw error text and returns its generic fallback.
     await insertDailyChallenge({ start_title: "Bacteria" });
 
     const res = await POST(makeRequest({ playerId: "not-a-uuid", playerName: "Alice" }));
 
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/uuid/i);
+    await expect(res.json()).resolves.toEqual({ error: "Failed to start today's attempt." });
   });
 
   it("returns 502 when the article fetch fails with a WikipediaError", async () => {
@@ -107,15 +107,15 @@ describe("POST /api/daily/attempt", () => {
     await expect(res.json()).resolves.toEqual({ error: "Failed to start today's attempt." });
   });
 
-  it("returns 500 with the real error message on an unexpected failure", async () => {
+  it("returns 500 with getOrCreateTodayChallenge's generic message on an unexpected failure", async () => {
     // No pre-seeded challenge, and a null title violates daily_challenges'
-    // real NOT NULL constraint — getOrCreateTodayChallenge throws for real.
+    // real NOT NULL constraint — getOrCreateTodayChallenge throws for real,
+    // with a generic message rather than the raw Postgres error.
     fetchRandomStartArticle.mockResolvedValue({ title: null, html: "<p/>", isTarget: false });
 
     const res = await POST(makeRequest({ playerId: crypto.randomUUID(), playerName: "Alice" }));
 
     expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toMatch(/null value|not-null/i);
+    await expect(res.json()).resolves.toEqual({ error: "Failed to create today's challenge." });
   });
 });
