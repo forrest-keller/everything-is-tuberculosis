@@ -150,6 +150,22 @@ describe("fetchArticle", () => {
     await expect(wikipedia.fetchArticle("Made Up Title")).rejects.toThrow(wikipedia.WikipediaError);
   });
 
+  it("throws WikipediaError when the redirect lookup itself errors and nothing is cached", async () => {
+    // Distinct from the "doesn't exist anywhere" case above: there the
+    // redirect lookup succeeds and reports the page missing. Here the lookup
+    // request itself fails outright (e.g. MediaWiki API outage), and with no
+    // cached mapping to fall back on there's nothing left to try.
+    queueFetch(
+      wmeLoginOk(),
+      new Response(null, { status: 404 }), // raw title not found directly on Enterprise
+      new Response(null, { status: 400 }), // MediaWiki redirect lookup request fails outright
+    );
+
+    await expect(wikipedia.fetchArticle("Some Broken Title")).rejects.toThrow(
+      wikipedia.WikipediaError,
+    );
+  });
+
   it("re-authenticates and retries once on a 401 from Enterprise", async () => {
     queueFetch(
       wmeLoginOk(),
