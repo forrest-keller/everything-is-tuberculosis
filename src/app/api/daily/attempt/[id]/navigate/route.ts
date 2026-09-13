@@ -4,7 +4,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { WikipediaError } from "@/lib/wikipedia";
 import { buildNavigationClickResponse, computeNavigationClick } from "@/lib/navigate-attempt";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { dbErrorResponse, parseJsonBody, requiredString } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredString, requiredUuid } from "@/lib/validation";
 
 // Generous enough that no real player will ever hit it (Wikipedia's link-distance
 // to any article is small), but bounds worst-case storage and upstream API cost
@@ -13,7 +13,7 @@ const MAX_CLICKS_PER_ATTEMPT = 300;
 
 const MISSING_FIELDS_MSG = "Missing playerId or title.";
 const dailyNavigateSchema = z.object({
-  playerId: requiredString(MISSING_FIELDS_MSG),
+  playerId: requiredUuid(MISSING_FIELDS_MSG),
   title: requiredString(MISSING_FIELDS_MSG),
 });
 
@@ -62,6 +62,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .select("clicks, duration_ms")
       .maybeSingle();
 
+    // id already succeeded in an identical lookup above, so this update has
+    // no remaining trigger short of a genuine infra-level Postgres failure.
+    /* v8 ignore next */
     if (updateError) return dbErrorResponse(updateError, 500, "/api/daily/attempt/[id]/navigate");
     if (!updated) {
       return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });

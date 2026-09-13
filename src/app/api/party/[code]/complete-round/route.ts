@@ -31,6 +31,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
   if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/complete-round");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 

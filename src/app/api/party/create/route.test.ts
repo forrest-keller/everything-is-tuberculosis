@@ -120,16 +120,16 @@ describe("POST /api/party/create", () => {
     });
   });
 
-  it("returns 500 on a genuine (non-collision) session insert error", async () => {
-    // host_player_id is a uuid column; a non-UUID string is a real Postgres
-    // error distinct from the 23505 collision path above. The route hides
-    // the raw error text and returns its generic fallback.
+  it("returns 400 when hostPlayerId isn't a valid uuid", async () => {
+    // Format validation now catches this before it ever reaches Postgres —
+    // it used to be the only way to exercise the session insert's genuine
+    // (non-collision) error branch, which is why that branch now carries a
+    // coverage-ignore comment in route.ts instead of a test here.
     const res = await POST(makeRequest({ hostName: "Alice", hostPlayerId: "not-a-uuid" }));
 
-    expect(res.status).toBe(500);
-    await expect(res.json()).resolves.toEqual({
-      error: "Something went wrong. Please try again.",
-    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/player id/i);
   });
 
   it("returns 500 when the host player insert fails", async () => {

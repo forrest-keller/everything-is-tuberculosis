@@ -5,12 +5,12 @@ import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 import {
   dbErrorResponse,
   parseJsonBody,
-  requiredString,
   requiredTrimmedString,
+  requiredUuid,
 } from "@/lib/validation";
 
 const joinSchema = z.object({
-  playerId: requiredString("Missing player id."),
+  playerId: requiredUuid("Missing player id."),
   name: requiredTrimmedString("Enter a name between 1 and 32 characters.", 32),
 });
 
@@ -35,6 +35,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
   if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/join");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
@@ -54,6 +58,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .select()
     .maybeSingle();
 
+  // playerId is validated as a UUID up front and name is length-capped to
+  // match party_players' own check constraint, so this update has no
+  // remaining public-input trigger short of a genuine infra-level Postgres
+  // failure.
+  /* v8 ignore next */
   if (updateError) return dbErrorResponse(updateError, 400, "/api/party/[code]/join");
   if (updated) return NextResponse.json({ player: updated });
 
@@ -70,6 +79,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
         { status: 409 },
       );
     }
+    // playerId is validated as a UUID up front and name is length-capped to
+    // match party_players' own check constraint; the one other realistic
+    // failure (id already in use) is a 23505, handled above. No remaining
+    // public-input trigger short of a genuine infra-level Postgres failure.
+    /* v8 ignore next */
     return dbErrorResponse(insertError, 400, "/api/party/[code]/join");
   }
 

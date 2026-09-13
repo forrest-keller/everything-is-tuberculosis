@@ -75,13 +75,27 @@ describe("POST /api/daily/attempt", () => {
     });
   });
 
-  it("returns 400 when the insert fails for real (invalid player id)", async () => {
-    // player_id is a uuid column with no format validation upstream — a
-    // non-UUID string is a genuine Postgres error, not a mocked one. The
-    // route hides the raw error text and returns its generic fallback.
+  it("returns 400 when playerId isn't a valid uuid", async () => {
     await insertDailyChallenge({ start_title: "Bacteria" });
 
     const res = await POST(makeRequest({ playerId: "not-a-uuid", playerName: "Alice" }));
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/playerId/i);
+  });
+
+  it("returns 400 when the insert fails for real (player name too long)", async () => {
+    // playerName has no upstream max-length check (unlike party/join's name
+    // field), so daily_scores' `char_length(player_name) between 1 and 32`
+    // check constraint is still reachable through valid public input — a
+    // genuine Postgres error, not a mocked one. The route hides the raw
+    // error text and returns its generic fallback.
+    await insertDailyChallenge({ start_title: "Bacteria" });
+
+    const res = await POST(
+      makeRequest({ playerId: crypto.randomUUID(), playerName: "x".repeat(33) }),
+    );
 
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toEqual({ error: "Failed to start today's attempt." });

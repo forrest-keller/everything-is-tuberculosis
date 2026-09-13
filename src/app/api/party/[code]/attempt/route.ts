@@ -3,10 +3,10 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { dbErrorResponse, parseJsonBody, requiredString } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredUuid } from "@/lib/validation";
 
 const attemptSchema = z.object({
-  playerId: requiredString("Missing playerId."),
+  playerId: requiredUuid("Missing playerId."),
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
@@ -24,6 +24,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
+  // code is an arbitrary, unconstrained text lookup — no public input can
+  // make this query itself fail (a nonexistent code is 0 rows, not an
+  // error), so this branch has no realistic trigger for an integration test.
+  /* v8 ignore next */
   if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/attempt");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
   if (session.status !== "playing" || !session.current_start_title) {
@@ -38,6 +42,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("player_id", playerId)
     .maybeSingle();
 
+  // session.id and session.round_number always come from a row we just
+  // read, and playerId is now validated as a UUID up front, so this lookup
+  // has no remaining public-input trigger short of a genuine infra-level
+  // Postgres failure.
+  /* v8 ignore next */
   if (existingError) return dbErrorResponse(existingError, 500, "/api/party/[code]/attempt");
   if (existing?.status === "finished") {
     return NextResponse.json({ error: "You've already finished this round." }, { status: 409 });

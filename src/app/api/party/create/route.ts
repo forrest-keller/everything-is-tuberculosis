@@ -5,8 +5,8 @@ import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
 import {
   dbErrorResponse,
   parseJsonBody,
-  requiredString,
   requiredTrimmedString,
+  requiredUuid,
 } from "@/lib/validation";
 
 // Excludes visually-ambiguous characters (0/O, 1/I/L).
@@ -14,7 +14,7 @@ const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 const createPartySchema = z.object({
   hostName: requiredTrimmedString("Enter a name between 1 and 32 characters.", 32),
-  hostPlayerId: requiredString("Missing player id."),
+  hostPlayerId: requiredUuid("Missing player id."),
 });
 
 function generateCode(length = 5): string {
@@ -44,6 +44,12 @@ export async function POST(request: Request) {
 
     if (sessionError) {
       if (sessionError.code === "23505") continue; // code collision, try another
+      // Every other insert value is schema-validated before we get here
+      // (code is generated internally, hostPlayerId is a validated UUID),
+      // so this branch has no remaining public-input trigger short of a
+      // genuine infra-level Postgres failure — not realistically coverable
+      // by an integration test.
+      /* v8 ignore next */
       return dbErrorResponse(sessionError, 500, "/api/party/create");
     }
 
