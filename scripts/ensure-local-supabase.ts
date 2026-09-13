@@ -48,9 +48,6 @@ export function ensureLocalSupabase(options: EnsureLocalSupabaseOptions = {}): L
   }
 
   if (reset) {
-    // Reapplies every migration against a clean database so each full test
-    // run starts from the same schema, independent of whatever a previous
-    // run's tests left behind.
     execSync(`npx supabase db reset${workdirFlag}`, { stdio: "inherit" });
   }
 

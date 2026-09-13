@@ -81,7 +81,6 @@ describe("POST /api/party/create", () => {
     expect(body.session.code).toMatch(/^[A-Z0-9]{5}$/);
     trackRowForCleanup("party_sessions", "id", body.session.id);
 
-    // Real row exists, and the host was inserted as a player too.
     const db = getTestServiceClient();
     const { data: player } = await db
       .from("party_players")
