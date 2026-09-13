@@ -47,6 +47,8 @@ export default defineConfig({
         WME_API_ORIGIN_OVERRIDE: FIXTURE_WIKI_ORIGIN,
         WIKIMEDIA_ENTERPRISE_USERNAME: "e2e-test",
         WIKIMEDIA_ENTERPRISE_PASSWORD: "e2e-test",
+        WIKI_USER_AGENT_CONTACT_URL: "https://example.com/e2e-test",
+        WIKI_USER_AGENT_CONTACT_EMAIL: "e2e-test@example.com",
       },
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",

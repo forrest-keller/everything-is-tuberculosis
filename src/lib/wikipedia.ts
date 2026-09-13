@@ -267,11 +267,19 @@ function processArticleHtml(rawHtml: string): string {
 
 // Per https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy:
 // identify the client, include the word "bot", and give real contact info —
-// a generic/anonymous-looking UA can be deprioritized or blocked without notice.
-const USER_AGENT =
-  "EverythingIsTuberculosisBot/1.0 " +
-  "(https://github.com/forrest-keller/everything-is-tuberculosis; forrestblackburnkeller@gmail.com) " +
-  "Next.js/16.3.5";
+// a generic/anonymous-looking UA can be deprioritized or blocked without
+// notice. Required via env (no hardcoded fallback) so a fork run by someone
+// else sends *their* contact details, not this repo's.
+function userAgent(): string {
+  const url = process.env.WIKI_USER_AGENT_CONTACT_URL;
+  const email = process.env.WIKI_USER_AGENT_CONTACT_EMAIL;
+  if (!url || !email) {
+    throw new WikipediaError(
+      "Wikipedia User-Agent contact info is not configured (WIKI_USER_AGENT_CONTACT_URL / WIKI_USER_AGENT_CONTACT_EMAIL)",
+    );
+  }
+  return `EverythingIsTuberculosisBot/1.0 (${url}; ${email}) Next.js/16.3.5`;
+}
 
 const MAX_RETRY_AFTER_MS = 10_000;
 
@@ -290,7 +298,7 @@ async function fetchWithRetry(url: string, init: RequestInit = {}, retries = 2):
     const res = await fetch(url, {
       redirect: "follow",
       ...init,
-      headers: { "User-Agent": USER_AGENT, ...init.headers },
+      headers: { "User-Agent": userAgent(), ...init.headers },
     });
     const shouldRetry = (res.status === 429 || res.status >= 500) && attempt < retries;
     if (!shouldRetry) return res;

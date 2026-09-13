@@ -45,17 +45,10 @@ Next.js (App Router) · React · TypeScript · Tailwind CSS · Supabase
    npm install
    ```
 
-2. Set up Supabase:
-   - Create a project at [supabase.com](https://supabase.com).
-   - Run [supabase/migrations/0001_initial_schema.sql](supabase/migrations/0001_initial_schema.sql)
-     in the Supabase SQL Editor (or `supabase db push` if you've linked the
-     project).
-   - Create a `.env.local` file with your project's values:
-
-     ```bash
-     NEXT_PUBLIC_SUPABASE_URL=your-project-url
-     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-     ```
+2. Copy [.env.local.example](.env.local.example) to `.env.local` and fill in
+   [Wikimedia Enterprise](https://enterprise.wikimedia.com/) credentials
+   (used for article-title redirect lookups). No Supabase setup needed here
+   — see the next step.
 
 3. Run the development server:
 
@@ -63,7 +56,28 @@ Next.js (App Router) · React · TypeScript · Tailwind CSS · Supabase
    npm run dev
    ```
 
+   `predev` boots a local Supabase stack (Postgres + PostgREST + Realtime +
+   Studio) via Docker and applies
+   [supabase/migrations](supabase/migrations) to it automatically — no
+   hosted project needed. Requires
+   [Docker](https://www.docker.com/products/docker-desktop/) to be running;
+   the first run pulls its images, which takes a minute.
+
    Open [http://localhost:3000](http://localhost:3000) to play.
+
+   This dev stack is a separate set of containers from the one tests use
+   (see [Testing](#testing) below), so resetting one never wipes the
+   other's data. It keeps whatever you've built up locally across restarts;
+   manage it directly if needed:
+
+   ```bash
+   npm run supabase:dev:start  # boots/updates it (idempotent, keeps data)
+   npm run supabase:dev:reset  # same, but wipes and reapplies migrations from scratch
+   npm run supabase:dev:stop   # tears it down
+   ```
+
+   Its Supabase Studio (a local dashboard for browsing/editing data) runs at
+   the `STUDIO_URL` printed on start, http://127.0.0.1:55323 by default.
 
 ## Testing
 

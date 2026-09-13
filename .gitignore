@@ -21,6 +21,10 @@
 /.next/
 /out/
 
+# generated dev Supabase workdir (derived from supabase/ by
+# scripts/ensure-local-dev-supabase.mts — see that file)
+/supabase-dev
+
 # production
 /build
 
@@ -36,6 +40,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env*.example
 
 # vercel
 .vercel

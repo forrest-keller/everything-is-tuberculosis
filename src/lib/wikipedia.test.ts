@@ -44,6 +44,8 @@ beforeEach(async () => {
   vi.unstubAllGlobals();
   vi.stubEnv("WIKIMEDIA_ENTERPRISE_USERNAME", "user");
   vi.stubEnv("WIKIMEDIA_ENTERPRISE_PASSWORD", "pass");
+  vi.stubEnv("WIKI_USER_AGENT_CONTACT_URL", "https://example.com/test-bot");
+  vi.stubEnv("WIKI_USER_AGENT_CONTACT_EMAIL", "test@example.com");
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
   // Note: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are left as
