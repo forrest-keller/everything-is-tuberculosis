@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString, requiredTrimmedString } from "@/lib/validation";
+import { parseJsonBody, requiredTrimmedString, requiredUuid } from "@/lib/validation";
 
 const joinSchema = z.object({
-  playerId: requiredString("Missing player id."),
+  playerId: requiredUuid("Missing player id."),
   name: requiredTrimmedString("Enter a name between 1 and 32 characters.", 32),
 });
 

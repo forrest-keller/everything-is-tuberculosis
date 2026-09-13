@@ -3,10 +3,10 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString } from "@/lib/validation";
+import { parseJsonBody, requiredUuid } from "@/lib/validation";
 
 const attemptSchema = z.object({
-  playerId: requiredString("Missing playerId."),
+  playerId: requiredUuid("Missing playerId."),
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {

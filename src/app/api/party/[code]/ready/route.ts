@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredBoolean, requiredString } from "@/lib/validation";
+import { parseJsonBody, requiredBoolean, requiredUuid } from "@/lib/validation";
 
 const MISSING_FIELDS_MSG = "Missing playerId or isReady.";
 const readySchema = z.object({
-  playerId: requiredString(MISSING_FIELDS_MSG),
+  playerId: requiredUuid(MISSING_FIELDS_MSG),
   isReady: requiredBoolean(MISSING_FIELDS_MSG),
 });
 

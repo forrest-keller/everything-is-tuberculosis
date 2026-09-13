@@ -73,10 +73,10 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns 500 when playerId isn't a valid uuid", async () => {
+  it("returns 400 when playerId isn't a valid uuid", async () => {
     const session = await insertPartySession({ status: "playing" });
     const res = await call(session.code, { playerId: "not-a-uuid", roundNumber: 1, title: "X" });
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
   });
 
   it("returns 404 when the attempt doesn't exist", async () => {

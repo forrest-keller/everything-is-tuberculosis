@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString, requiredTrimmedString } from "@/lib/validation";
+import { parseJsonBody, requiredTrimmedString, requiredUuid } from "@/lib/validation";
 
 // Excludes visually-ambiguous characters (0/O, 1/I/L).
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 const createPartySchema = z.object({
   hostName: requiredTrimmedString("Enter a name between 1 and 32 characters.", 32),
-  hostPlayerId: requiredString("Missing player id."),
+  hostPlayerId: requiredUuid("Missing player id."),
 });
 
 function generateCode(length = 5): string {

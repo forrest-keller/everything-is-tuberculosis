@@ -4,11 +4,11 @@ import { getOrCreateTodayChallenge } from "@/lib/daily-server";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString } from "@/lib/validation";
+import { parseJsonBody, requiredString, requiredUuid } from "@/lib/validation";
 
 const MISSING_FIELDS_MSG = "Missing playerId or playerName.";
 const dailyAttemptSchema = z.object({
-  playerId: requiredString(MISSING_FIELDS_MSG),
+  playerId: requiredUuid(MISSING_FIELDS_MSG),
   playerName: requiredString(MISSING_FIELDS_MSG),
 });
 

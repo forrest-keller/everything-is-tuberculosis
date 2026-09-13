@@ -120,14 +120,12 @@ describe("POST /api/party/create", () => {
     });
   });
 
-  it("returns 500 on a genuine (non-collision) session insert error", async () => {
-    // host_player_id is a uuid column; a non-UUID string is a real Postgres
-    // error distinct from the 23505 collision path above.
+  it("returns 400 when hostPlayerId isn't a valid uuid", async () => {
     const res = await POST(makeRequest({ hostName: "Alice", hostPlayerId: "not-a-uuid" }));
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/uuid/i);
+    expect(body.error).toMatch(/player id/i);
   });
 
   it("returns 500 when the host player insert fails", async () => {

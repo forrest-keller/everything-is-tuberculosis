@@ -59,7 +59,7 @@ describe("POST /api/party/[code]/advance", () => {
   });
 
   it("returns 404 when the session doesn't exist", async () => {
-    const res = await call("NOPE1", { playerId: "host1" });
+    const res = await call("NOPE1", { playerId: crypto.randomUUID() });
     expect(res.status).toBe(404);
   });
 

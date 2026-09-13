@@ -15,6 +15,16 @@ export function requiredTrimmedString(message: string, maxLength: number): z.Zod
   return z.string({ error: message }).trim().min(1, message).max(maxLength, message);
 }
 
+/**
+ * Like requiredString, but also requires the value to be a valid UUID —
+ * for fields (playerId, hostPlayerId) backed by a Postgres `uuid` column,
+ * so a malformed id is rejected as a 400 here instead of reaching Postgres
+ * and surfacing as a raw 500.
+ */
+export function requiredUuid(message: string): z.ZodUUID {
+  return z.uuid({ error: message });
+}
+
 export function requiredNumber(message: string): z.ZodNumber {
   return z.number({ error: message });
 }

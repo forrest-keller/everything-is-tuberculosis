@@ -71,13 +71,13 @@ describe("POST /api/party/[code]/attempt", () => {
     expect(res.status).toBe(409);
   });
 
-  it("returns 500 when playerId isn't a valid uuid", async () => {
+  it("returns 400 when playerId isn't a valid uuid", async () => {
     const session = await insertPartySession({
       status: "playing",
       current_start_title: "Bacteria",
     });
     const res = await call(session.code, { playerId: "not-a-uuid" });
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
   });
 
   it("returns 409 when the player already finished this round", async () => {

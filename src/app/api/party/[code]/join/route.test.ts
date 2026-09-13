@@ -90,9 +90,7 @@ describe("POST /api/party/[code]/join", () => {
     expect(res.status).toBe(200);
   });
 
-  it("returns 400 when the player upsert fails for real", async () => {
-    // playerId becomes party_players.id, a uuid column — an invalid UUID is
-    // a genuine Postgres error rather than a mocked one.
+  it("returns 400 when playerId isn't a valid uuid", async () => {
     const session = await insertPartySession();
 
     const res = await POST(makeRequest(session.code, { playerId: "not-a-uuid", name: "Alice" }), {
@@ -101,7 +99,7 @@ describe("POST /api/party/[code]/join", () => {
 
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/uuid/i);
+    expect(body.error).toMatch(/player id/i);
   });
 
   it("actually persists the player row", async () => {

@@ -3,11 +3,11 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString } from "@/lib/validation";
+import { parseJsonBody, requiredString, requiredUuid } from "@/lib/validation";
 
 const MISSING_FIELDS_MSG = "Missing playerId or title.";
 const dailyNavigateSchema = z.object({
-  playerId: requiredString(MISSING_FIELDS_MSG),
+  playerId: requiredUuid(MISSING_FIELDS_MSG),
   title: requiredString(MISSING_FIELDS_MSG),
 });
 
