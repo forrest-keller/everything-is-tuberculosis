@@ -121,6 +121,20 @@ describe("POST /api/party/[code]/attempt/navigate", () => {
     expect(fetchArticle).not.toHaveBeenCalled();
   });
 
+  it("returns 409 once the attempt has reached the max click cap", async () => {
+    const { session, player, roundNumber } = await setUpInProgressAttempt();
+    await getTestServiceClient()
+      .from("party_round_results")
+      .update({ clicks: 300 })
+      .eq("session_id", session.id)
+      .eq("round_number", roundNumber)
+      .eq("player_id", player.id);
+
+    const res = await call(session.code, { playerId: player.id, roundNumber, title: "X" });
+    expect(res.status).toBe(409);
+    expect(fetchArticle).not.toHaveBeenCalled();
+  });
+
   it("increments clicks and appends to the path on a non-winning click", async () => {
     fetchArticle.mockResolvedValue({ title: "Next Article", html: "<p/>", isTarget: false });
     const { session, player, roundNumber } = await setUpInProgressAttempt();

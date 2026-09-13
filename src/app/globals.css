@@ -8,9 +8,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-oswald);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-bevan);
+  --font-serif: var(--font-vollkorn);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,73 +50,85 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Vintage public-health-poster palette: warm cream paper + deep teal / mustard
+ * / rust ink, standing in for shadcn's default grayscale scale. Kept as plain
+ * hex (not oklch) to match the values validated in the design mockup.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #f2e9d3;
+  --foreground: #2b2420;
+  --card: #eae0c4;
+  --card-foreground: #2b2420;
+  --popover: #eae0c4;
+  --popover-foreground: #2b2420;
+  --primary: #1f5c55;
+  --primary-foreground: #f2e9d3;
+  --secondary: #ce9a2e;
+  --secondary-foreground: #2b2420;
+  --muted: #eae0c4;
+  --muted-foreground: #6b5d48;
+  --accent: #eae0c4;
+  --accent-foreground: #2b2420;
+  --destructive: #ae4a30;
+  --border: rgba(43, 36, 32, 0.28);
+  --input: rgba(43, 36, 32, 0.28);
+  --ring: #1f5c55;
+  --chart-1: #1f5c55;
+  --chart-2: #ce9a2e;
+  --chart-3: #ae4a30;
+  --chart-4: #6b5d48;
+  --chart-5: #2b2420;
+  --radius: 0.3rem;
+  --halftone-dot: rgba(43, 36, 32, 0.05);
+  --sidebar: #eae0c4;
+  --sidebar-foreground: #2b2420;
+  --sidebar-primary: #1f5c55;
+  --sidebar-primary-foreground: #f2e9d3;
+  --sidebar-accent: #eae0c4;
+  --sidebar-accent-foreground: #2b2420;
+  --sidebar-border: rgba(43, 36, 32, 0.28);
+  --sidebar-ring: #1f5c55;
 }
 
+/*
+ * "Night Edition": not a straight inversion — it keeps the same warm,
+ * printed-paper character (parchment ink on dark stock, teal/mustard/rust
+ * brightened for contrast) rather than reading as a generic dark mode.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1b2422;
+  --foreground: #ede1c4;
+  --card: #24302c;
+  --card-foreground: #ede1c4;
+  --popover: #24302c;
+  --popover-foreground: #ede1c4;
+  --primary: #5fae9e;
+  --primary-foreground: #1b2422;
+  --secondary: #e7b04a;
+  --secondary-foreground: #1b2422;
+  --muted: #24302c;
+  --muted-foreground: #b2a488;
+  --accent: #24302c;
+  --accent-foreground: #ede1c4;
+  --destructive: #d8785a;
+  --border: rgba(237, 225, 196, 0.2);
+  --input: rgba(237, 225, 196, 0.2);
+  --ring: #5fae9e;
+  --chart-1: #5fae9e;
+  --chart-2: #e7b04a;
+  --chart-3: #d8785a;
+  --chart-4: #b2a488;
+  --chart-5: #ede1c4;
+  --halftone-dot: rgba(237, 225, 196, 0.05);
+  --sidebar: #24302c;
+  --sidebar-foreground: #ede1c4;
+  --sidebar-primary: #5fae9e;
+  --sidebar-primary-foreground: #1b2422;
+  --sidebar-accent: #24302c;
+  --sidebar-accent-foreground: #ede1c4;
+  --sidebar-border: rgba(237, 225, 196, 0.2);
+  --sidebar-ring: #5fae9e;
 }
 
 @layer base {
@@ -124,10 +137,27 @@
   }
   body {
     @apply bg-background text-foreground;
+    position: relative;
   }
   html {
     @apply font-sans;
   }
+}
+
+/*
+ * Faint halftone dot texture, fixed behind all page content (negative
+ * z-index keeps it out of the way of everything else's stacking without
+ * requiring every page to opt in). --halftone-dot carries the opacity so it
+ * stays legible in both the day and night palettes.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, var(--halftone-dot) 1.4px, transparent 0);
+  background-size: 7px 7px;
 }
 
 /*
@@ -146,6 +176,10 @@
  */
 .wiki-content {
   overflow-wrap: anywhere;
+  /* Article prose is long-form reading, not UI chrome — the condensed
+     display sans used for buttons/labels elsewhere gets fatiguing at this
+     length, so this is the one place that opts back into a serif body face. */
+  font-family: var(--font-serif);
 }
 .wiki-content :where(a.wiki-link) {
   color: var(--color-primary);
