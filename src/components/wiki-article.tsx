@@ -16,6 +16,12 @@ function wikipediaArticleUrl(title: string): string {
 export function WikiArticle({ title, html, onNavigate }: WikiArticleProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Land the reader at the top of the new article instead of wherever they
+  // were scrolled to on the last one.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [title]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;

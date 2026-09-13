@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WikiArticle } from "./wiki-article";
+
+beforeEach(() => {
+  window.scrollTo = vi.fn();
+});
 
 const html = `
   <p>See <a class="wiki-link" data-title="Bacteria">Bacteria</a>.</p>
@@ -67,5 +71,26 @@ describe("WikiArticle", () => {
     render(<WikiArticle title="Tuberculosis" html={html} onNavigate={onNavigate} />);
     fireEvent.click(screen.getByText("No title"));
     expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("scrolls to the top when navigating to a new article", () => {
+    const { rerender } = render(
+      <WikiArticle title="Tuberculosis" html={html} onNavigate={vi.fn()} />,
+    );
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0 });
+    vi.mocked(window.scrollTo).mockClear();
+
+    rerender(<WikiArticle title="Bacteria" html={html} onNavigate={vi.fn()} />);
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0 });
+  });
+
+  it("does not scroll again on a re-render of the same article", () => {
+    const { rerender } = render(
+      <WikiArticle title="Tuberculosis" html={html} onNavigate={vi.fn()} />,
+    );
+    vi.mocked(window.scrollTo).mockClear();
+
+    rerender(<WikiArticle title="Tuberculosis" html={html} onNavigate={vi.fn()} />);
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 });
