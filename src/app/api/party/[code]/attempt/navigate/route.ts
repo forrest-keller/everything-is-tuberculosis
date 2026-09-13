@@ -4,7 +4,7 @@ import { getSupabaseServiceClient } from "@/lib/supabase";
 import { WikipediaError } from "@/lib/wikipedia";
 import { buildNavigationClickResponse, computeNavigationClick } from "@/lib/navigate-attempt";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredNumber, requiredString } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredNumber, requiredString } from "@/lib/validation";
 
 // Generous enough that no real player will ever hit it (Wikipedia's link-distance
 // to any article is small), but bounds worst-case storage and upstream API cost
@@ -33,7 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/attempt/navigate");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   const { data: attempt, error: loadError } = await supabase
@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("player_id", playerId)
     .maybeSingle();
 
-  if (loadError) return NextResponse.json({ error: loadError.message }, { status: 500 });
+  if (loadError) return dbErrorResponse(loadError, 500, "/api/party/[code]/attempt/navigate");
   if (!attempt) return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
   if (attempt.status !== "in_progress") {
     return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
@@ -73,7 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       .select("clicks, duration_ms")
       .maybeSingle();
 
-    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (updateError) return dbErrorResponse(updateError, 500, "/api/party/[code]/attempt/navigate");
     if (!updated) {
       return NextResponse.json({ error: "This attempt has already finished." }, { status: 409 });
     }

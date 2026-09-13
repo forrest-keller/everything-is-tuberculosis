@@ -169,8 +169,9 @@ describe("POST /api/party/[code]/attempt", () => {
     const res = await call(session.code, { playerId: crypto.randomUUID() });
 
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/foreign key|violates/i);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong. Please try again.",
+    });
   });
 
   it("returns 502 with the WikipediaError message when the article fetch fails", async () => {

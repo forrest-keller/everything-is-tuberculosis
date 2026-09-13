@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { fetchRandomStartArticle, WikipediaError } from "@/lib/wikipedia";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString } from "@/lib/validation";
+import { dbErrorResponse, parseJsonBody, requiredString } from "@/lib/validation";
 
 const advanceSchema = z.object({
   playerId: requiredString("Missing player id."),
@@ -24,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  if (sessionError) return dbErrorResponse(sessionError, 500, "/api/party/[code]/advance");
   if (!session) return NextResponse.json({ error: "Session not found." }, { status: 404 });
 
   if (session.status === "lobby") {
@@ -36,7 +36,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       .from("party_players")
       .select("is_ready")
       .eq("session_id", session.id);
-    if (playersError) return NextResponse.json({ error: playersError.message }, { status: 500 });
+    if (playersError) return dbErrorResponse(playersError, 500, "/api/party/[code]/advance");
     if (!players?.length || !players.every((p) => p.is_ready)) {
       return NextResponse.json({ error: "Not everyone is ready yet." }, { status: 409 });
     }
@@ -72,7 +72,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     .select()
     .maybeSingle();
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+  if (updateError) return dbErrorResponse(updateError, 500, "/api/party/[code]/advance");
   if (!updated) {
     return NextResponse.json({ error: "Session already advanced." }, { status: 409 });
   }

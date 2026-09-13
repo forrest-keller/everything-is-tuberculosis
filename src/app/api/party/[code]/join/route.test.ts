@@ -100,8 +100,9 @@ describe("POST /api/party/[code]/join", () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/uuid/i);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong. Please try again.",
+    });
   });
 
   it("actually persists the player row", async () => {

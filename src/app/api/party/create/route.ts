@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { clientIp, isRateLimited, rateLimitResponse } from "@/lib/rate-limit";
-import { parseJsonBody, requiredString, requiredTrimmedString } from "@/lib/validation";
+import {
+  dbErrorResponse,
+  parseJsonBody,
+  requiredString,
+  requiredTrimmedString,
+} from "@/lib/validation";
 
 // Excludes visually-ambiguous characters (0/O, 1/I/L).
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
 
     if (sessionError) {
       if (sessionError.code === "23505") continue; // code collision, try another
-      return NextResponse.json({ error: sessionError.message }, { status: 500 });
+      return dbErrorResponse(sessionError, 500, "/api/party/create");
     }
 
     const { error: playerError } = await supabase
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
       .insert({ id: hostPlayerId, session_id: session.id, name: hostName });
 
     if (playerError) {
-      return NextResponse.json({ error: playerError.message }, { status: 500 });
+      return dbErrorResponse(playerError, 500, "/api/party/create");
     }
 
     return NextResponse.json({ session });

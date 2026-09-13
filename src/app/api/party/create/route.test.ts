@@ -122,12 +122,14 @@ describe("POST /api/party/create", () => {
 
   it("returns 500 on a genuine (non-collision) session insert error", async () => {
     // host_player_id is a uuid column; a non-UUID string is a real Postgres
-    // error distinct from the 23505 collision path above.
+    // error distinct from the 23505 collision path above. The route hides
+    // the raw error text and returns its generic fallback.
     const res = await POST(makeRequest({ hostName: "Alice", hostPlayerId: "not-a-uuid" }));
 
     expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toMatch(/uuid/i);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong. Please try again.",
+    });
   });
 
   it("returns 500 when the host player insert fails", async () => {
@@ -143,7 +145,8 @@ describe("POST /api/party/create", () => {
     const res = await POST(makeRequest({ hostName: "Alice", hostPlayerId: existingPlayer.id }));
 
     expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toMatch(/duplicate key|already exists/i);
+    await expect(res.json()).resolves.toEqual({
+      error: "Something went wrong. Please try again.",
+    });
   });
 });

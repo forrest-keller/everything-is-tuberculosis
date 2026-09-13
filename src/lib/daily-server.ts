@@ -26,7 +26,10 @@ export async function getOrCreateTodayChallenge(): Promise<DailyChallengeRow> {
     .eq("challenge_date", challengeDate)
     .maybeSingle();
 
-  if (selectError) throw new Error(selectError.message);
+  if (selectError) {
+    console.error("[daily-server] database error:", selectError.message);
+    throw new Error("Failed to load today's challenge.");
+  }
   if (existing) return existing as DailyChallengeRow;
 
   const article = await fetchRandomStartArticle();
@@ -47,5 +50,6 @@ export async function getOrCreateTodayChallenge(): Promise<DailyChallengeRow> {
     .maybeSingle();
   if (retry) return retry as DailyChallengeRow;
 
-  throw new Error(insertError?.message ?? "Failed to create today's challenge.");
+  if (insertError) console.error("[daily-server] database error:", insertError.message);
+  throw new Error("Failed to create today's challenge.");
 }
