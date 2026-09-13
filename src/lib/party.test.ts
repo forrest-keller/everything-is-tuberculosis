@@ -206,6 +206,10 @@ describe("fetchPartyPlayers", () => {
     expect(players).toHaveLength(2);
     expect(players.every((p) => p.sessionId === session.id)).toBe(true);
   });
+
+  it("throws when sessionId isn't a valid uuid", async () => {
+    await expect(fetchPartyPlayers("not-a-uuid")).rejects.toThrow();
+  });
 });
 
 describe("fetchPartyRoundResults", () => {
@@ -239,6 +243,10 @@ describe("fetchPartyRoundResults", () => {
 
     const results = await fetchPartyRoundResults(session.id, 1);
     expect(results.map((r) => r.playerId)).toEqual([p2.id, p1.id]);
+  });
+
+  it("throws when sessionId isn't a valid uuid", async () => {
+    await expect(fetchPartyRoundResults("not-a-uuid", 1)).rejects.toThrow();
   });
 });
 

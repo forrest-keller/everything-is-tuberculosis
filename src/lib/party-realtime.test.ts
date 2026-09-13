@@ -132,6 +132,34 @@ describe("subscribeToPartySession", () => {
     });
   });
 
+  it("defaults a result's path to an empty array when the payload has none", async () => {
+    const { subscribeToPartySession } = await import("./party");
+    const onResultChange = vi.fn();
+    subscribeToPartySession("s1", { onResultChange });
+    const [, , resultHandler] = fake.handlers;
+
+    resultHandler({
+      eventType: "INSERT",
+      new: {
+        id: "r2",
+        session_id: "s1",
+        round_number: 1,
+        player_id: "p1",
+        status: "finished",
+        clicks: 0,
+        duration_ms: 0,
+        finished_at: "t1",
+      },
+      old: {},
+    });
+
+    expect(onResultChange).toHaveBeenCalledWith({
+      eventType: "INSERT",
+      id: "r2",
+      row: expect.objectContaining({ path: [] }),
+    });
+  });
+
   it("maps a result DELETE using the old row's id, with a null row", async () => {
     const { subscribeToPartySession } = await import("./party");
     const onResultChange = vi.fn();

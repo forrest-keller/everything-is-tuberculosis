@@ -263,6 +263,13 @@ describe("fetchArticle", () => {
     vi.unstubAllEnvs();
     await expect(wikipedia.fetchArticle("Tuberculosis")).rejects.toThrow(wikipedia.WikipediaError);
   });
+
+  it("throws WikipediaError when the initial login request itself fails", async () => {
+    queueFetch(new Response(null, { status: 401 })); // login rejects the configured credentials
+    await expect(wikipedia.fetchArticle("Tuberculosis")).rejects.toThrow(
+      /Wikimedia Enterprise login failed \(401\)/,
+    );
+  });
 });
 
 describe("fetchRandomTitle", () => {

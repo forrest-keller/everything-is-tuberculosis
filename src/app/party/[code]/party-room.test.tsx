@@ -96,6 +96,12 @@ describe("PartyRoom", () => {
     expect(await screen.findByText("network down")).toBeInTheDocument();
   });
 
+  it("shows a default load-error message when something other than an Error is thrown", async () => {
+    mocked.fetchPartySessionByCode.mockRejectedValue("not an Error instance");
+    render(<PartyRoom code="ABCDEF" />);
+    expect(await screen.findByText("Failed to load session.")).toBeInTheDocument();
+  });
+
   it("shows the join form for a visitor who hasn't joined yet", async () => {
     mocked.fetchPartySessionByCode.mockResolvedValue(session());
     mocked.fetchPartyPlayers.mockResolvedValue([player({ id: "someone-else", name: "Alice" })]);
@@ -122,6 +128,27 @@ describe("PartyRoom", () => {
     fireEvent.click(screen.getByRole("button", { name: "Join Session" }));
 
     expect(await screen.findByText("session full")).toBeInTheDocument();
+  });
+
+  it("shows a default join-error message when something other than an Error is thrown", async () => {
+    mocked.fetchPartySessionByCode.mockResolvedValue(session());
+    mocked.joinPartySession.mockRejectedValue("not an Error instance");
+    render(<PartyRoom code="ABCDEF" />);
+
+    fireEvent.change(await screen.findByLabelText("Your name"), { target: { value: "Bob" } });
+    fireEvent.click(screen.getByRole("button", { name: "Join Session" }));
+
+    expect(await screen.findByText("Failed to join the session.")).toBeInTheDocument();
+  });
+
+  it("pluralizes the already-joined count", async () => {
+    mocked.fetchPartySessionByCode.mockResolvedValue(session());
+    mocked.fetchPartyPlayers.mockResolvedValue([
+      player({ id: "p2", name: "Alice" }),
+      player({ id: "p3", name: "Bob" }),
+    ]);
+    render(<PartyRoom code="ABCDEF" />);
+    expect(await screen.findByText("2 players have already joined.")).toBeInTheDocument();
   });
 
   it("shows host controls in the lobby and starts the game", async () => {
@@ -241,6 +268,35 @@ describe("PartyRoom", () => {
     expect(await screen.findByText("You made it!")).toBeInTheDocument();
     expect(screen.getByText(/1 click ·/)).toBeInTheDocument();
     await waitFor(() => expect(mocked.completeRoundIfDone).toHaveBeenCalledWith("ABCDEF", 1));
+  });
+
+  it("falls back to the race hook's own clicks/time when the server result has no elapsedMs", async () => {
+    mocked.fetchPartySessionByCode.mockResolvedValue(
+      session({ status: "playing", roundNumber: 1, currentStartTitle: "Bacteria" }),
+    );
+    mocked.fetchPartyPlayers.mockResolvedValue([player()]);
+    mocked.createPartyAttempt.mockResolvedValue({
+      roundNumber: 1,
+      article: {
+        title: "Bacteria",
+        html: '<a class="wiki-link" data-title="Tuberculosis">TB</a>',
+        isTarget: false,
+      },
+    });
+    // No elapsedMs on the response means PartyRound's own finalResult is
+    // never set, so the "won" view must fall back to the race hook's values.
+    mocked.navigatePartyAttempt.mockResolvedValue({
+      title: "Tuberculosis",
+      html: "<p>done</p>",
+      isTarget: true,
+    });
+    mocked.completeRoundIfDone.mockResolvedValue(undefined);
+
+    render(<PartyRoom code="ABCDEF" />);
+    fireEvent.click(await screen.findByText("TB"));
+
+    expect(await screen.findByText("You made it!")).toBeInTheDocument();
+    expect(screen.getByText(/1 click ·/)).toBeInTheDocument();
   });
 
   it("applies incremental realtime updates without refetching", async () => {
@@ -441,6 +497,16 @@ describe("PartyRoom", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Start Game" }));
     expect(await screen.findByText("could not start")).toBeInTheDocument();
+  });
+
+  it("shows a default start-game error when something other than an Error is thrown", async () => {
+    mocked.fetchPartySessionByCode.mockResolvedValue(session());
+    mocked.fetchPartyPlayers.mockResolvedValue([player()]);
+    mocked.advancePartyRound.mockRejectedValue("not an Error instance");
+    render(<PartyRoom code="ABCDEF" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Start Game" }));
+    expect(await screen.findByText("Failed to start the game.")).toBeInTheDocument();
   });
 
   it("silently ignores a clipboard failure when copying the invite link", async () => {

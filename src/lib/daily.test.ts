@@ -156,4 +156,8 @@ describe("fetchDailyLeaderboard", () => {
     const leaderboard = await fetchDailyLeaderboard(challengeDate, 1);
     expect(leaderboard).toHaveLength(1);
   });
+
+  it("throws when challengeDate isn't a valid date", async () => {
+    await expect(fetchDailyLeaderboard("not-a-date")).rejects.toThrow();
+  });
 });
